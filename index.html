@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F97316">
+<title>SiteForce — Construction Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root{
+  --orange:#F97316;--orange-dim:#c45a0d;--yellow:#FCD34D;
+  --dark:#0f0f0e;--dark2:#1a1918;--dark3:#252320;--mid:#3a3830;
+  --light:#e8e4da;--muted:#7a7670;
+  --green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#c084fc;
+  --sidebar:260px;
+  --fd:'Bebas Neue',sans-serif;
+  --fm:'IBM Plex Mono',monospace;
+  --fb:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--dark);color:var(--light);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.app{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar);min-width:var(--sidebar);
+  background:var(--dark2);border-right:1px solid var(--mid);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:50;
+  transition:transform .25s;
+}
+.sb-logo{
+  padding:20px 20px 16px;
+  border-bottom:2px solid var(--orange);
+  display:flex;align-items:center;gap:10px;
+}
+.sb-logo-text{font-family:var(--fd);font-size:28px;letter-spacing:3px;color:var(--orange);line-height:1}
+.sb-logo-sub{font-family:var(--fm);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.sb-proj{
+  padding:12px 16px;background:var(--dark3);
+  border-bottom:1px solid var(--mid);cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+}
+.sb-proj-label{font-family:var(--fm);font-size:9px;color:var(--muted);text-transform:uppercase}
+.sb-proj-name{font-family:var(--fd);font-size:15px;letter-spacing:1px;color:var(--yellow);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-proj-icon{font-size:20px}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0}
+.sb-nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 20px;cursor:pointer;
+  color:var(--muted);font-family:var(--fm);font-size:11px;
+  font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  border-left:3px solid transparent;transition:all .15s;
+}
+.sb-nav-item:hover{background:var(--dark3);color:var(--light)}
+.sb-nav-item.active{background:var(--dark3);color:var(--orange);border-left-color:var(--orange)}
+.sb-nav-icon{font-size:18px;width:22px;text-align:center}
+.sb-nav-divider{height:1px;background:var(--mid);margin:8px 16px}
+.sb-clock{
+  padding:14px 20px;border-top:1px solid var(--mid);
+  font-family:var(--fm);
+}
+.sb-time{font-size:20px;color:var(--yellow);font-weight:600;letter-spacing:1px}
+.sb-date{font-size:10px;color:var(--muted);margin-top:2px}
+.sb-weather{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;background:var(--dark3);border-radius:6px;border:1px solid var(--mid)}
+.sb-wx-icon{font-size:22px}
+.sb-wx-temp{font-family:var(--fd);font-size:20px;color:var(--yellow);line-height:1}
+.sb-wx-desc{font-family:var(--fm);font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.sb-wx-haz{font-family:var(--fm);font-size:9px;padding:2px 6px;border-radius:4px;text-transform:uppercase;font-weight:600;margin-left:auto}
+.haz-low{background:#1a3d2a;color:var(--green)} .haz-mid{background:#3d2a1a;color:var(--orange)} .haz-hi{background:#3d1a1a;color:var(--red)}
+
+/* MAIN CONTENT */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{
+  background:var(--dark2);border-bottom:1px solid var(--mid);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:40;
+}
+.topbar-title{font-family:var(--fd);font-size:22px;letter-spacing:2px;color:var(--light)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.content{padding:28px;flex:1}
+
+/* MOBILE TOGGLE */
+.mob-toggle{display:none;background:none;border:none;color:var(--orange);font-size:24px;cursor:pointer;padding:4px}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:49}
+
+/* ═══════════════════════════════════════════
+   COMMON COMPONENTS
+═══════════════════════════════════════════ */
+.screen{display:none}.screen.active{display:block}
+.page-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.page-grid.wide{grid-template-columns:2fr 1fr}
+.page-grid.full{grid-template-columns:1fr}
+@media(max-width:900px){.page-grid,.page-grid.wide{grid-template-columns:1fr}}
+
+.card{background:var(--dark2);border:1px solid var(--mid);border-radius:10px;padding:20px;margin-bottom:18px}
+.card-title{font-family:var(--fm);font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sh{font-family:var(--fd);font-size:24px;letter-spacing:2px;color:var(--light);margin-bottom:20px;border-left:4px solid var(--orange);padding-left:12px;display:flex;align-items:center;justify-content:space-between}
+.sh-sub{font-family:var(--fm);font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px;margin-top:3px}
+
+/* STAT BOXES */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:700px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+.stat-box{background:var(--dark2);border:1px solid var(--mid);border-radius:10px;padding:18px 14px;text-align:center}
+.stat-num{font-family:var(--fd);font-size:40px;color:var(--yellow);line-height:1}
+.stat-lbl{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:4px;letter-spacing:.5px}
+
+/* FORMS */
+.f{background:var(--dark3);border:1px solid var(--mid);border-radius:7px;padding:10px 13px;color:var(--light);font-family:var(--fb);font-size:14px;width:100%;margin-bottom:10px;transition:border-color .15s}
+.f:focus{outline:none;border-color:var(--orange)}.f::placeholder{color:var(--muted)}
+textarea.f{resize:vertical;min-height:72px}select.f{cursor:pointer}
+.form-row{display:flex;gap:10px;margin-bottom:0}.form-row .f{margin-bottom:0}
+.form-row{margin-bottom:10px}
+.label{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
+
+/* BUTTONS */
+.btn{background:var(--orange);color:#fff;border:none;border-radius:7px;padding:10px 20px;font-family:var(--fm);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--orange-dim)}.btn:active{transform:scale(.98)}
+.btn-o{background:transparent;border:1px solid var(--mid);color:var(--light)}
+.btn-o:hover{border-color:var(--orange);color:var(--orange);background:transparent}
+.btn-sm{padding:6px 14px;font-size:10px}
+.btn-full{width:100%;margin-top:8px}
+.btn-danger{background:#3d1a1a;color:var(--red);border:1px solid var(--red)}
+.btn-print{background:#1a3d2a;color:var(--green);border:1px solid var(--green)}
+.btn-print:hover{background:#0d2a1a}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:3px 5px;border-radius:4px;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+
+/* BADGES */
+.badge{font-family:var(--fm);font-size:10px;padding:3px 9px;border-radius:99px;text-transform:uppercase;font-weight:600}
+.bg-ongoing{background:#1a2a3d;color:var(--blue)}.bg-done{background:#1a3d2a;color:var(--green)}.bg-delayed{background:#3d1a1a;color:var(--red)}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:var(--dark3);color:var(--orange);font-family:var(--fm);font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:2px solid var(--mid);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--dark3);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl tfoot td{background:var(--dark3);font-weight:700;font-family:var(--fm);font-size:11px;border-top:2px solid var(--mid)}
+
+/* PROGRESS */
+.pw{background:var(--dark3);border-radius:99px;height:8px;overflow:hidden}
+.pb{height:100%;border-radius:99px;transition:width .4s}
+.pb-lo{background:var(--red)}.pb-mi{background:var(--orange)}.pb-hi{background:var(--green)}
+.ov-pw{background:var(--dark3);border-radius:99px;height:14px;overflow:hidden;margin-bottom:14px}
+.ov-pb{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--orange),var(--yellow));transition:width .5s}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-family:var(--fm);font-size:12px}
+.empty-ic{font-size:42px;margin-bottom:12px}
+
+/* TOAST */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--orange);color:#fff;font-family:var(--fm);font-size:12px;padding:11px 24px;border-radius:99px;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(249,115,22,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.md{background:var(--dark2);border:1px solid var(--mid);border-radius:14px;padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.md-title{font-family:var(--fd);font-size:24px;letter-spacing:2px;color:var(--orange);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.mc{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0 4px}
+.mc:hover{color:var(--light)}
+
+/* PROJECT HOME CARDS */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.proj-card{background:var(--dark2);border:1px solid var(--mid);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .2s,transform .1s,box-shadow .2s;position:relative;display:flex;gap:14px;align-items:flex-start}
+.proj-card:hover{border-color:var(--orange);transform:translateY(-2px);box-shadow:0 8px 30px rgba(249,115,22,.15)}
+.proj-icon-big{width:52px;height:52px;min-width:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.proj-info{flex:1;min-width:0}
+.proj-name{font-family:var(--fd);font-size:20px;letter-spacing:1px;margin-bottom:3px}
+.proj-loc{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.proj-stats-row{display:flex;gap:12px;flex-wrap:wrap}
+.proj-stat{font-family:var(--fm);font-size:10px;color:var(--muted)}
+.proj-stat span{color:var(--yellow);font-weight:600}
+.proj-del{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 6px;border-radius:4px}
+.proj-del:hover{color:var(--red);background:var(--dark3)}
+
+/* ATTENDANCE WEEKLY */
+.week-nav{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.week-label{font-family:var(--fm);font-size:12px;color:var(--yellow);flex:1;text-align:center;font-weight:600}
+.day-headers{display:grid;grid-template-columns:2fr repeat(6,1fr) auto auto auto auto;gap:4px;margin-bottom:4px}
+.day-hdr{font-family:var(--fm);font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;padding:4px 2px}
+.day-hdr.today-hdr{color:var(--orange)}
+.worker-row-pay{display:grid;grid-template-columns:2fr repeat(6,1fr) auto auto auto auto;gap:4px;align-items:center;padding:6px 0;border-bottom:1px solid var(--dark3)}
+.worker-row-pay:last-child{border-bottom:none}
+.day-cell{width:100%;aspect-ratio:1.2;border-radius:6px;border:1px solid var(--mid);background:var(--dark3);color:var(--muted);font-family:var(--fm);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;min-width:36px;min-height:30px}
+.day-cell:hover{border-color:var(--orange)}
+.day-cell.present{background:#1a3d2a;border-color:var(--green);color:var(--green)}
+.day-cell.half{background:#3d2a1a;border-color:var(--orange);color:var(--orange)}
+.day-cell.absent{background:#3d1a1a;border-color:var(--red);color:var(--red)}
+.day-cell.today-col{border-color:var(--orange) !important}
+.wk-name{font-size:13px;font-weight:600}
+.wk-role{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase}
+.wk-days{font-family:var(--fm);font-size:12px;color:var(--muted);text-align:center}
+.wk-rate{font-family:var(--fm);font-size:12px;color:var(--muted);text-align:right}
+.wk-sal{font-family:var(--fd);font-size:16px;color:var(--yellow);text-align:right}
+
+/* RECEIPTS */
+.rc-item{background:var(--dark3);border:1px solid var(--mid);border-radius:8px;padding:14px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+.rc-desc{font-size:14px;font-weight:600}
+.rc-amount{font-family:var(--fd);font-size:22px;color:var(--yellow);white-space:nowrap;text-align:right}
+.rc-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;grid-column:1/-1}
+.rc-tag{font-family:var(--fm);font-size:10px;padding:3px 8px;border-radius:99px;text-transform:uppercase}
+.rc-tag.materials{background:#1a2a3d;color:var(--blue)}.rc-tag.labor{background:#2a1a3d;color:var(--purple)}
+.rc-tag.equipment{background:#3d2a1a;color:var(--orange)}.rc-tag.transport{background:#1a3d3d;color:#22d3ee}
+.rc-tag.office{background:#1a3d2a;color:var(--green)}.rc-tag.other{background:var(--mid);color:var(--light)}
+.rc-sub{font-family:var(--fm);font-size:10px;padding:2px 8px;border-radius:99px;cursor:pointer;text-transform:uppercase;font-weight:600}
+.rc-sub.yes{background:#1a3d2a;color:var(--green)}.rc-sub.no{background:#3d2a1a;color:var(--orange)}
+
+/* TODO */
+.todo-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--dark3)}
+.todo-item:last-child{border-bottom:none}
+.todo-check{width:22px;height:22px;min-width:22px;border:2px solid var(--mid);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:2px;transition:all .15s}
+.todo-check.done-c{background:var(--green);border-color:var(--green)}
+.todo-text{font-size:14px;line-height:1.4}
+.todo-text.striked{text-decoration:line-through;color:var(--muted)}
+.todo-note{font-size:12px;color:var(--muted);margin-top:3px}
+.todo-due{font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:4px}
+
+/* FILTER PILLS */
+.filter-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.fp{background:var(--dark3);border:1px solid var(--mid);border-radius:99px;padding:5px 14px;font-family:var(--fm);font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s}
+.fp:hover{border-color:var(--orange);color:var(--orange)}
+.fp.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+/* SUMMARY */
+.sum-row{display:grid;grid-template-columns:1fr 80px 80px;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--dark3)}
+.sum-row:last-child{border-bottom:none}
+.sum-name{font-size:14px;font-weight:600}
+.sum-area{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.sum-pct{font-family:var(--fd);font-size:26px;color:var(--yellow);text-align:right;line-height:1}
+.ov-pct{font-family:var(--fd);font-size:64px;color:var(--yellow);text-align:center;line-height:1}
+.ov-lbl{font-family:var(--fm);font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:1px;margin:6px 0 16px}
+.dgl{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--dark3)}
+
+/* AC TAGS */
+.ac-tag{font-family:var(--fm);font-size:10px;padding:3px 8px;border-radius:99px;text-transform:uppercase}
+.ac-tag.structural{background:#1a2a3d;color:var(--blue)}.ac-tag.finishing{background:#2a1a3d;color:var(--purple)}
+.ac-tag.electrical{background:#3d2a1a;color:var(--orange)}.ac-tag.plumbing{background:#1a3d3d;color:#22d3ee}
+.ac-tag.civil{background:#1a3d2a;color:var(--green)}.ac-tag.other{background:var(--mid);color:var(--light)}
+.ac-pct{font-family:var(--fm);font-size:11px;color:var(--yellow);font-weight:600}
+
+/* ACTIVITY CARDS */
+.act-card{background:var(--dark2);border:1px solid var(--mid);border-radius:10px;margin-bottom:14px;overflow:hidden;transition:border-color .2s}
+.act-card:hover{border-color:var(--orange)}
+.act-card-header{padding:14px 16px;display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.act-card-body{padding:0 16px 14px}
+.act-card-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.act-card-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.act-card-area{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase}
+.act-card-workers{font-family:var(--fm);font-size:10px;color:var(--muted)}
+.act-card-notes{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;padding:8px 10px;background:var(--dark3);border-radius:6px}
+.act-progress-row{display:flex;align-items:center;gap:10px;margin:10px 0 4px}
+.act-pct-label{font-family:var(--fd);font-size:22px;color:var(--yellow);line-height:1;min-width:46px;text-align:right}
+
+/* ACTIVITY PHOTO STRIP */
+.act-photo-strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none;margin-top:10px}
+.act-photo-strip::-webkit-scrollbar{display:none}
+.act-photo-thumb{width:90px;height:90px;min-width:90px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .15s}
+.act-photo-thumb:hover{border-color:var(--orange);transform:scale(1.04)}
+.act-photo-add{width:90px;height:90px;min-width:90px;border-radius:8px;border:2px dashed var(--mid);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;transition:border-color .2s,background .2s;flex-shrink:0}
+.act-photo-add:hover{border-color:var(--orange);background:var(--dark3)}
+.act-photo-add-icon{font-size:22px}
+.act-photo-add-label{font-family:var(--fm);font-size:9px;color:var(--muted);text-transform:uppercase;text-align:center;line-height:1.3}
+.act-photo-count{font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:4px}
+
+/* LIGHTBOX */
+#lightboxModal{align-items:center;justify-content:center}
+.photo-card{background:var(--dark2);border:1px solid var(--mid);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .2s;position:relative}
+.photo-card:hover{transform:translateY(-3px);border-color:var(--orange)}
+.photo-card img{width:100%;height:160px;object-fit:cover;display:block;background:var(--dark3)}
+.photo-card-body{padding:10px 12px}
+.photo-caption{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.photo-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.photo-cat{font-family:var(--fm);font-size:9px;padding:2px 7px;border-radius:99px;text-transform:uppercase;font-weight:600}
+.photo-cat.progress{background:#1a2a3d;color:var(--blue)}
+.photo-cat.issue{background:#3d1a1a;color:var(--red)}
+.photo-cat.completed{background:#1a3d2a;color:var(--green)}
+.photo-cat.materials{background:#3d2a1a;color:var(--orange)}
+.photo-cat.safety{background:#2a1a3d;color:var(--purple)}
+.photo-cat.other{background:var(--mid);color:var(--light)}
+.photo-date{font-family:var(--fm);font-size:9px;color:var(--muted)}
+.photo-del{position:absolute;top:7px;right:7px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:26px;height:26px;color:#fff;font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center}
+.photo-card:hover .photo-del{display:flex}
+.photo-date-group{font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--mid);grid-column:1/-1}
+.upload-progress{background:var(--dark3);border-radius:4px;height:4px;overflow:hidden;margin-top:6px}
+.upload-progress-bar{height:100%;background:var(--orange);border-radius:4px;transition:width .3s}
+@media print{
+  .sidebar,.topbar,.no-print,.btn,.btn-o,.btn-sm,.btn-print,.toast,.mo{display:none!important}
+  .main{margin-left:0!important}
+  .content{padding:0!important}
+  .screen{display:none!important}
+  .screen.print-active.active{display:block!important;padding:0!important}
+  .print-show{display:block!important}
+  .rpt-act-block{page-break-inside:avoid}
+  @page{margin:12mm;size:A4}
+}
+.print-show{display:none}
+
+/* REPORT DOCUMENT STYLES */
+.rpt-page{font-family:Arial,sans-serif;color:#000;background:#fff;padding:20px}
+.rpt-cover{text-align:center;padding:30px 20px 24px;border-bottom:3px solid #222;margin-bottom:24px}
+.rpt-company{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px}
+.rpt-title{font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:3px;margin-bottom:6px}
+.rpt-sub{font-size:12px;color:#555;margin-bottom:3px}
+.rpt-meta-row{display:flex;justify-content:center;gap:28px;margin-top:14px;font-size:12px;flex-wrap:wrap}
+.rpt-meta-item{text-align:center}
+.rpt-meta-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px}
+.rpt-meta-value{font-size:14px;font-weight:700}
+.rpt-section-title{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:2px;border-bottom:2px solid #222;padding-bottom:5px;margin:24px 0 14px}
+.rpt-date-group{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:#f0f0f0;padding:5px 12px;margin:16px 0 10px;border-left:4px solid #F97316}
+.rpt-act-block{margin-bottom:20px;page-break-inside:avoid;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden}
+.rpt-act-header{display:flex;align-items:flex-start;gap:14px;padding:12px 14px;background:#fafafa;border-bottom:1px solid #e5e7eb}
+.rpt-act-num{font-size:16px;font-weight:900;color:#F97316;min-width:24px;line-height:1.3}
+.rpt-act-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.rpt-act-detail{font-size:11px;color:#555;margin-bottom:2px}
+.rpt-act-status{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;text-transform:uppercase;font-weight:700}
+.rpt-status-done{background:#dcfce7;color:#166534}
+.rpt-status-ongoing{background:#dbeafe;color:#1e40af}
+.rpt-status-delayed{background:#fee2e2;color:#991b1b}
+.rpt-pct-bar{height:7px;border-radius:99px;background:#e5e7eb;overflow:hidden;margin-top:5px;max-width:180px}
+.rpt-pct-fill{height:100%;border-radius:99px;background:#F97316}
+.rpt-act-photos{padding:12px 14px}
+.rpt-photo-grid{display:grid;gap:8px;margin-top:4px}
+.rpt-photo-grid img{width:100%;height:150px;object-fit:cover;border-radius:5px;border:1px solid #ddd}
+.rpt-no-photos{font-size:11px;color:#aaa;font-style:italic}
+.rpt-acc-section{padding:12px 14px;border-top:1px solid #e5e7eb}
+.rpt-acc-item{padding:6px 10px;background:#fff7ed;border-left:3px solid #F97316;margin-bottom:6px;border-radius:0 4px 4px 0}
+.rpt-acc-title{font-size:12px;font-weight:700}
+.rpt-acc-desc{font-size:11px;color:#555;margin-top:2px}
+.rpt-summary-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.rpt-summary-table th{background:#f0f0f0;padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border:1px solid #ddd}
+.rpt-summary-table td{padding:7px 10px;border:1px solid #ddd;vertical-align:top}
+.rpt-summary-table tr:nth-child(even) td{background:#fafafa}
+.rpt-footer{text-align:center;margin-top:36px;padding-top:14px;border-top:1px solid #ddd;font-size:11px;color:#888}
+.rpt-sig-row{display:flex;justify-content:space-between;margin-top:48px}
+.rpt-sig{text-align:center;width:28%}
+.rpt-sig-line{border-top:1px solid #000;padding-top:5px;font-size:11px;margin-top:38px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sb-overlay.open{display:block}
+  .main{margin-left:0}
+  .mob-toggle{display:block}
+  .content{padding:16px}
+  .topbar{padding:12px 16px}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .day-headers,.worker-row-pay{grid-template-columns:1.5fr repeat(6,1fr) auto auto}
+  .wk-rate,.wk-sal{display:none}
+}
+@media(max-width:500px){
+  .proj-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+<!-- ═══════ SIDEBAR ═══════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div>
+      <div class="sb-logo-text">⚙ SITEFORCE</div>
+      <div class="sb-logo-sub">Construction Management</div>
+    </div>
+  </div>
+
+  <!-- Active project indicator -->
+  <div class="sb-proj" id="sbProjBanner" onclick="goHome()" style="display:none">
+    <div class="sb-proj-icon" id="sbProjIcon">🏗</div>
+    <div style="flex:1;min-width:0">
+      <div class="sb-proj-label">Active Project</div>
+      <div class="sb-proj-name" id="sbProjName">—</div>
+    </div>
+    <div style="color:var(--muted);font-size:12px">↩</div>
+  </div>
+
+  <!-- Nav items -->
+  <nav class="sb-nav" id="sbNav" style="display:none">
+    <div class="sb-nav-item active" onclick="go('dash')" id="tab-dash"><span class="sb-nav-icon">🏗</span>Dashboard</div>
+    <div class="sb-nav-item" onclick="go('attendance')" id="tab-attendance"><span class="sb-nav-icon">👷</span>Attendance & Payroll</div>
+    <div class="sb-nav-item" onclick="go('activities')" id="tab-activities"><span class="sb-nav-icon">⚒️</span>Activities</div>
+    <div class="sb-nav-item" onclick="go('accomplishments')" id="tab-accomplishments"><span class="sb-nav-icon">🏆</span>Accomplishments</div>
+    <div class="sb-nav-item" onclick="go('summary')" id="tab-summary"><span class="sb-nav-icon">📊</span>Summary</div>
+    <div class="sb-nav-divider"></div>
+    <div class="sb-nav-item" onclick="go('receipts')" id="tab-receipts"><span class="sb-nav-icon">🧾</span>Receipts</div>
+    <div class="sb-nav-item" onclick="go('todos')" id="tab-todos"><span class="sb-nav-icon">✅</span>To-Do List</div>
+    <div class="sb-nav-item" onclick="go('photos')" id="tab-photos"><span class="sb-nav-icon">📷</span>Site Photos</div>
+    <div class="sb-nav-divider"></div>
+    <div class="sb-nav-item" onclick="go('report')" id="tab-report"><span class="sb-nav-icon">📋</span>Project Report</div>
+  </nav>
+
+  <!-- Home nav (no project selected) -->
+  <nav class="sb-nav" id="sbHomeNav">
+    <div class="sb-nav-item active" onclick="goHome()"><span class="sb-nav-icon">🏠</span>My Projects</div>
+  </nav>
+
+  <!-- Export / Import -->
+  <div style="padding:10px 12px;border-top:1px solid var(--mid);display:flex;gap:6px">
+    <button class="btn btn-o btn-sm" style="flex:1;font-size:10px" onclick="exportData()">⬇ Export</button>
+    <button class="btn btn-o btn-sm" style="flex:1;font-size:10px" onclick="document.getElementById('importFileInput').click()">⬆ Import</button>
+    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)"/>
+  </div>
+
+  <!-- Clock & weather -->
+  <div class="sb-clock">
+    <div class="sb-time" id="hTime">--:--:--</div>
+    <div class="sb-date" id="hDate">---</div>
+    <div class="sb-weather" id="sbWeather">
+      <div class="sb-wx-icon" id="wIcon">🌡</div>
+      <div>
+        <div class="sb-wx-temp" id="wTemp">—°C</div>
+        <div class="sb-wx-desc" id="wDesc">Loading…</div>
+      </div>
+      <div class="sb-wx-haz haz-low" id="wHaz">LOW</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════ MAIN ═══════ -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="mob-toggle" onclick="openSidebar()">☰</button>
+      <div class="topbar-title" id="topbarTitle">MY PROJECTS</div>
+    </div>
+    <div class="topbar-right" id="topbarRight">
+      <button class="btn btn-sm" onclick="openModal('newProjModal')">+ New Project</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════ HOME ══════════ -->
+    <div class="screen active" id="screen-home">
+      <div class="proj-grid" id="projList">
+        <div class="empty"><div class="empty-ic">🏗</div>No projects yet.<br>Click "+ New Project" to get started.</div>
+      </div>
+    </div>
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div class="screen" id="screen-dash">
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-num" id="dPresent">0</div><div class="stat-lbl">On Site Today</div></div>
+        <div class="stat-box"><div class="stat-num" id="dAct">0</div><div class="stat-lbl">Activities</div></div>
+        <div class="stat-box"><div class="stat-num" id="dAcc">0</div><div class="stat-lbl">Accomplishments</div></div>
+        <div class="stat-box"><div class="stat-num" id="dTodo">0</div><div class="stat-lbl">Pending Tasks</div></div>
+      </div>
+
+      <div class="page-grid wide">
+        <div>
+          <div class="card">
+            <div class="card-title">📊 Today's Site Summary</div>
+            <div id="dashSum" style="font-size:14px;line-height:2;color:var(--muted)">No data yet for today.</div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">⚙️ Project Info</div>
+            <label class="label">Project Name</label>
+            <input class="f" id="piName" placeholder="Project name" oninput="saveProjInfo()"/>
+            <label class="label">Location</label>
+            <input class="f" id="piLoc" placeholder="Location / address" oninput="saveProjInfo()"/>
+            <label class="label">Foreman / Supervisor</label>
+            <input class="f" id="piForeman" placeholder="Foreman name" oninput="saveProjInfo()"/>
+            <label class="label">Company (for payroll header)</label>
+            <input class="f" id="piCompany" placeholder="e.g. Brent-Nathan Realty & Development Corp." oninput="saveProjInfo()"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ATTENDANCE ══════════ -->
+    <div class="screen print-active" id="screen-attendance">
+      <div class="sh no-print">
+        <div>ATTENDANCE & PAYROLL<div class="sh-sub">Weekly payroll sheet · SAT–FRI</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-o btn-sm" onclick="openModal('wkModal')">+ Worker</button>
+          <button class="btn btn-print btn-sm" onclick="printWeeklyPayroll()">🖨 Print Weekly Payroll</button>
+        </div>
+      </div>
+
+      <!-- Week navigator -->
+      <div class="week-nav no-print">
+        <button class="btn btn-o btn-sm" onclick="shiftWeek(-1)">‹ Prev Week</button>
+        <div class="week-label" id="weekLabel">—</div>
+        <button class="btn btn-o btn-sm" onclick="shiftWeek(1)">Next Week ›</button>
+      </div>
+
+      <!-- Weekly attendance table -->
+      <div class="card no-print" style="overflow-x:auto">
+        <div id="payrollTableWrap">
+          <div class="empty"><div class="empty-ic">👷</div>No workers yet. Click "+ Worker" to add.</div>
+        </div>
+      </div>
+
+      <!-- Weekly total bar -->
+      <div class="card no-print" id="weekTotalBar" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase">Weekly Payroll Total</div>
+            <div style="font-family:var(--fd);font-size:36px;color:var(--yellow)" id="weekTotal">₱0</div>
+          </div>
+          <div style="text-align:right;font-family:var(--fm);font-size:11px;color:var(--muted)" id="weekAttSummary"></div>
+        </div>
+      </div>
+
+      <!-- PRINT AREA -->
+      <div class="print-show" id="pWeeklyArea" style="font-family:Arial,sans-serif;color:#000">
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:1px" id="pwCompany"></div>
+          <div style="font-size:12px;font-weight:700;margin-top:3px" id="pwProjName"></div>
+          <div style="font-size:11px;margin-top:2px" id="pwProjLoc"></div>
+        </div>
+        <div style="display:flex;gap:20px;font-size:11px;margin-bottom:5px;border-top:1px solid #000;padding-top:5px">
+          <div>Charge to: <b id="pwCharge"></b></div>
+          <div>Date: <b id="pwDate"></b></div>
+          <div>Voucher No.: <span style="border-bottom:1px solid #000;display:inline-block;min-width:80px">&nbsp;</span></div>
+        </div>
+        <div style="font-size:11px;margin-bottom:8px">Particulars: <b id="pwParticulars"></b></div>
+        <table id="pwTable" style="border-collapse:collapse;width:100%;font-size:10px">
+          <thead id="pwHead"></thead>
+          <tbody id="pwBody"></tbody>
+        </table>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;font-size:12px">
+          <div style="border:1px solid #000;padding:4px 14px;font-weight:900">TOTAL = <span id="pwTotal"></span></div>
+        </div>
+        <div style="margin-top:8px;font-size:11px"><b>Activities:</b> <span id="pwActivities"></span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:36px;font-size:11px">
+          <div style="text-align:center;width:30%"><div style="border-top:1px solid #000;padding-top:4px;margin-top:28px">Prepared by</div></div>
+          <div style="text-align:center;width:30%"><div style="border-top:1px solid #000;padding-top:4px;margin-top:28px">Checked by</div></div>
+          <div style="text-align:center;width:30%"><div style="border-top:1px solid #000;padding-top:4px;margin-top:28px">Approved by</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ACTIVITIES ══════════ -->
+    <div class="screen" id="screen-activities">
+      <div class="sh no-print">
+        ACTIVITIES
+        <button class="btn btn-sm" onclick="openModal('actModal')">+ Log Activity</button>
+      </div>
+      <div class="filter-bar no-print">
+        <button class="fp active" onclick="setActFilter('all',this)">All</button>
+        <button class="fp" onclick="setActFilter('ongoing',this)">⟳ Ongoing</button>
+        <button class="fp" onclick="setActFilter('done',this)">✓ Done</button>
+        <button class="fp" onclick="setActFilter('delayed',this)">! Delayed</button>
+      </div>
+      <div id="actList">
+        <div class="empty"><div class="empty-ic">⚒️</div>No activities for today yet.</div>
+      </div>
+    </div>
+
+    <!-- ══════════ ACCOMPLISHMENTS ══════════ -->
+    <div class="screen" id="screen-accomplishments">
+      <div class="sh">
+        ACCOMPLISHMENTS
+        <button class="btn btn-sm" onclick="openModal('accModal')">+ Record</button>
+      </div>
+      <div id="accList"><div class="empty"><div class="empty-ic">🏆</div>No accomplishments yet.</div></div>
+    </div>
+
+    <!-- ══════════ SUMMARY ══════════ -->
+    <div class="screen print-active" id="screen-summary">
+      <div class="sh no-print">
+        SUMMARY
+        <button class="btn btn-print btn-sm" onclick="printSum()">🖨 Print Summary</button>
+      </div>
+      <div id="sumContent" class="no-print"></div>
+      <!-- Print area -->
+      <div class="print-show" id="pSumArea">
+        <div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:12px">
+          <div style="font-size:18px;font-weight:900;text-transform:uppercase" id="sProjName"></div>
+          <div style="font-size:12px" id="sProjLoc"></div>
+          <div style="font-size:16px;font-weight:700;margin-top:6px">ACTIVITIES & ACCOMPLISHMENT SUMMARY</div>
+          <div style="font-size:12px;margin-top:3px" id="sDate"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:12px">
+          <div><b>Foreman:</b> <span id="sForeman"></span></div>
+          <div><b>Overall Progress:</b> <span id="sOverall" style="font-weight:900"></span></div>
+        </div>
+        <table style="border-collapse:collapse;width:100%;font-size:11px">
+          <thead><tr>
+            <th style="background:#f0f0f0;padding:7px 6px;border:1px solid #999">#</th>
+            <th style="background:#f0f0f0;padding:7px 6px;border:1px solid #999">ACTIVITY</th>
+            <th style="background:#f0f0f0;padding:7px 6px;border:1px solid #999">AREA</th>
+            <th style="background:#f0f0f0;padding:7px 6px;border:1px solid #999">STATUS</th>
+            <th style="background:#f0f0f0;padding:7px 6px;border:1px solid #999;text-align:center">% DONE</th>
+            <th style="background:#f0f0f0;padding:7px 6px;border:1px solid #999">REMARKS</th>
+          </tr></thead>
+          <tbody id="sActBody"></tbody>
+        </table>
+        <div style="margin-top:12px;font-size:12px"><b>ACCOMPLISHMENTS:</b><div id="sAccList" style="margin-top:6px"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:40px;font-size:12px">
+          <div style="text-align:center;width:42%"><div style="border-top:1px solid #000;padding-top:5px;margin-top:28px">Prepared by / Foreman</div></div>
+          <div style="text-align:center;width:42%"><div style="border-top:1px solid #000;padding-top:5px;margin-top:28px">Noted by / Engineer / PM</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ RECEIPTS ══════════ -->
+    <div class="screen" id="screen-receipts">
+      <div class="sh">
+        RECEIPTS
+        <button class="btn btn-sm" onclick="openModal('rcModal')">+ Add Receipt</button>
+      </div>
+      <div class="page-grid wide">
+        <div>
+          <div class="filter-bar">
+            <button class="fp active" onclick="setRcFilter('all',this)">All</button>
+            <button class="fp" onclick="setRcFilter('unsubmitted',this)">⚠ Pending</button>
+            <button class="fp" onclick="setRcFilter('submitted',this)">✓ Submitted</button>
+            <button class="fp" onclick="setRcFilter('materials',this)">Materials</button>
+            <button class="fp" onclick="setRcFilter('labor',this)">Labor</button>
+            <button class="fp" onclick="setRcFilter('equipment',this)">Equipment</button>
+            <button class="fp" onclick="setRcFilter('transport',this)">Transport</button>
+          </div>
+          <div id="rcList"><div class="empty"><div class="empty-ic">🧾</div>No receipts yet.</div></div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">💰 Summary</div>
+            <div style="font-family:var(--fm);font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Total Spent</div>
+            <div style="font-family:var(--fd);font-size:40px;color:var(--yellow)" id="rcTotal">₱0</div>
+            <div style="font-family:var(--fm);font-size:11px;color:var(--orange);margin-top:6px" id="rcUnsubAmt"></div>
+            <button class="btn btn-o btn-full" style="margin-top:14px" onclick="copyReceipts()">📋 Copy List</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ TO-DO ══════════ -->
+    <div class="screen" id="screen-todos">
+      <div class="sh">
+        TO-DO LIST
+        <button class="btn btn-sm" onclick="openModal('todoModal')">+ Add Task</button>
+      </div>
+      <div class="page-grid wide">
+        <div>
+          <div class="filter-bar">
+            <button class="fp active" onclick="setTodoFilter('all',this)">All</button>
+            <button class="fp" onclick="setTodoFilter('today',this)">📅 Today</button>
+            <button class="fp" onclick="setTodoFilter('tomorrow',this)">➡ Tomorrow</button>
+            <button class="fp" onclick="setTodoFilter('pending',this)">⏳ Pending</button>
+            <button class="fp" onclick="setTodoFilter('done',this)">✓ Done</button>
+            <button class="fp" onclick="setTodoFilter('urgent',this)">🔴 Urgent</button>
+          </div>
+          <div class="card">
+            <div id="todoList"><div class="empty"><div class="empty-ic">✅</div>No tasks yet.</div></div>
+          </div>
+          <button class="btn btn-o btn-sm" onclick="clearDoneTodos()">🗑 Clear Completed</button>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">📋 Quick Stats</div>
+            <div id="todoStats" style="font-family:var(--fm);font-size:12px;line-height:2;color:var(--muted)">No tasks yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PHOTOS ══════════ -->
+    <div class="screen" id="screen-photos">
+      <div class="sh">
+        SITE PHOTOS
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="photoCount" style="font-family:var(--fm);font-size:11px;color:var(--muted)"></span>
+          <button class="btn btn-sm" onclick="document.getElementById('photoFileInput').click()">📷 Upload Photos</button>
+          <input type="file" id="photoFileInput" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(event)"/>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+        <div class="filter-bar" id="photoDateFilter" style="margin-bottom:0;flex:1"></div>
+        <select class="f" id="photoCatFilter" onchange="renderPhotos()" style="width:auto;margin-bottom:0;font-size:12px;padding:6px 10px">
+          <option value="all">All Categories</option>
+          <option value="progress">Progress</option>
+          <option value="issue">Issue / Problem</option>
+          <option value="completed">Completed Work</option>
+          <option value="materials">Materials</option>
+          <option value="safety">Safety</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <!-- Drop zone -->
+      <div id="photoDropZone" style="border:2px dashed var(--mid);border-radius:12px;padding:32px;text-align:center;cursor:pointer;margin-bottom:20px;transition:border-color .2s"
+        onclick="document.getElementById('photoFileInput').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--orange)'"
+        ondragleave="this.style.borderColor='var(--mid)'"
+        ondrop="handlePhotoDrop(event)">
+        <div style="font-size:40px;margin-bottom:10px">📷</div>
+        <div style="font-family:var(--fm);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Click or drag photos here to upload</div>
+        <div style="font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:6px">JPG, PNG, HEIC supported · Multiple files at once</div>
+      </div>
+
+      <!-- Photo grid -->
+      <div id="photoGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
+    </div>
+
+    <!-- ══════════ PROJECT REPORT ══════════ -->
+    <div class="screen print-active" id="screen-report">
+
+      <!-- On-screen controls (hidden on print) -->
+      <div class="no-print">
+        <div class="sh">
+          PROJECT COMPLETION REPORT
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-o btn-sm" onclick="renderReport()">🔄 Refresh</button>
+            <button class="btn btn-print btn-sm" onclick="printReport()">🖨 Print / Save PDF</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-title">⚙ Report Options</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end">
+            <div>
+              <label class="label">Photos per activity</label>
+              <select class="f" id="rptPhotoCols" onchange="renderReport()" style="margin-bottom:0">
+                <option value="2">2 per row</option>
+                <option value="3" selected>3 per row</option>
+                <option value="4">4 per row</option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Date range</label>
+              <select class="f" id="rptDateRange" onchange="renderReport()" style="margin-bottom:0">
+                <option value="all">All dates</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Include photos</label>
+              <select class="f" id="rptIncludePhotos" onchange="renderReport()" style="margin-bottom:0">
+                <option value="yes">Yes — include photos</option>
+                <option value="no">No — text only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview stats -->
+        <div class="stat-row" style="margin-bottom:20px" id="rptStats"></div>
+      </div>
+
+      <!-- THE PRINTABLE REPORT (also visible on screen as preview) -->
+      <div id="reportDocument">
+        <div class="empty"><div class="empty-ic">📋</div>Click "Refresh" to generate the report.</div>
+      </div>
+
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ════ MODALS ════ -->
+<div class="mo" id="newProjModal">
+  <div class="md">
+    <div class="md-title">NEW PROJECT <button class="mc" onclick="closeModal('newProjModal')">✕</button></div>
+    <label class="label">Project Name *</label>
+    <input class="f" id="npName" placeholder="e.g. BLK 10 LOT 5 Residence" />
+    <label class="label">Location</label>
+    <input class="f" id="npLoc" placeholder="Address or area" />
+    <label class="label">Foreman / Supervisor</label>
+    <input class="f" id="npForeman" placeholder="Name" />
+    <label class="label">Company (for payroll)</label>
+    <input class="f" id="npCompany" placeholder="e.g. Brent-Nathan Realty & Development Corp." />
+    <label class="label">Project Type</label>
+    <select class="f" id="npIcon">
+      <option value="🏗">🏗 Building / Structure</option>
+      <option value="🏠">🏠 Residential</option>
+      <option value="🏢">🏢 Commercial</option>
+      <option value="🛣">🛣 Road / Civil</option>
+      <option value="🔌">🔌 Electrical</option>
+      <option value="🪠">🪠 Plumbing</option>
+      <option value="🏭">🏭 Industrial</option>
+    </select>
+    <button class="btn btn-full" onclick="addProject()">+ CREATE PROJECT</button>
+  </div>
+</div>
+
+<div class="mo" id="wkModal">
+  <div class="md">
+    <div class="md-title">ADD WORKER <button class="mc" onclick="closeModal('wkModal')">✕</button></div>
+    <label class="label">Full Name *</label>
+    <input class="f" id="wName" placeholder="Full name" />
+    <label class="label">Role / Trade</label>
+    <input class="f" id="wRole" placeholder="e.g. Mason, Carpenter, Laborer" />
+    <label class="label">Daily Rate (₱)</label>
+    <input class="f" id="wRate" placeholder="e.g. 650" type="number" min="0" />
+    <button class="btn btn-full" onclick="addWorker()">+ ADD WORKER</button>
+  </div>
+</div>
+
+<div class="mo" id="actModal">
+  <div class="md">
+    <div class="md-title">LOG ACTIVITY <button class="mc" onclick="closeModal('actModal')">✕</button></div>
+    <label class="label">Activity Description *</label>
+    <input class="f" id="actName" placeholder="What work is being done?" />
+    <label class="label">Area / Location on Site</label>
+    <input class="f" id="actArea" placeholder="e.g. 2nd floor, Column A, Roofing" />
+    <div class="form-row">
+      <div style="flex:1">
+        <label class="label">Status</label>
+        <select class="f" id="actStatus" style="margin-bottom:0">
+          <option value="ongoing">Ongoing</option>
+          <option value="done">Done</option>
+          <option value="delayed">Delayed</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="label">% Complete</label>
+        <input class="f" id="actPct" placeholder="0–100" type="number" min="0" max="100" style="margin-bottom:0" />
+      </div>
+      <div style="flex:1">
+        <label class="label">No. of Workers</label>
+        <input class="f" id="actWk" placeholder="Count" type="number" min="0" style="margin-bottom:0" />
+      </div>
+    </div>
+    <label class="label" style="margin-top:10px">Remarks / Notes</label>
+    <textarea class="f" id="actNotes" placeholder="Optional notes or observations"></textarea>
+    <button class="btn btn-full" onclick="addActivity()">+ LOG ACTIVITY</button>
+  </div>
+</div>
+
+<!-- Activity photo viewer -->
+<div class="mo" id="actPhotoModal">
+  <div class="md" style="max-width:680px">
+    <div class="md-title" id="actPhotoModalTitle">ACTIVITY PHOTOS <button class="mc" onclick="closeModal('actPhotoModal')">✕</button></div>
+    <!-- Upload zone -->
+    <div id="actPhotoDropZone"
+      style="border:2px dashed var(--mid);border-radius:10px;padding:20px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color .2s"
+      onclick="document.getElementById('actPhotoFileInput').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--orange)'"
+      ondragleave="this.style.borderColor='var(--mid)'"
+      ondrop="handleActPhotoDrop(event)">
+      <div style="font-size:28px;margin-bottom:6px">📷</div>
+      <div style="font-family:var(--fm);font-size:11px;color:var(--muted);text-transform:uppercase">Click or drag photos here</div>
+      <div style="font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:4px">Multiple files supported · JPG, PNG, HEIC</div>
+    </div>
+    <input type="file" id="actPhotoFileInput" accept="image/*" multiple style="display:none" onchange="handleActPhotoUpload(event)"/>
+    <!-- Photo grid -->
+    <div id="actPhotoGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
+  </div>
+</div>
+
+<!-- Full-size photo lightbox -->
+<div class="mo" id="lightboxModal" style="background:rgba(0,0,0,.92)" onclick="closeModal('lightboxModal')">
+  <div style="max-width:90vw;max-height:90vh;position:relative" onclick="event.stopPropagation()">
+    <img id="lightboxImg" src="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;display:block"/>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px">
+      <div id="lightboxCaption" style="font-family:var(--fm);font-size:11px;color:var(--muted);flex:1"></div>
+      <button class="btn btn-o btn-sm" onclick="downloadLightboxPhoto()">⬇ Download</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteLightboxPhoto()">🗑 Delete</button>
+      <button class="mc" onclick="closeModal('lightboxModal')" style="color:#fff;font-size:22px">✕</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="accModal">
+  <div class="md">
+    <div class="md-title">RECORD ACCOMPLISHMENT <button class="mc" onclick="closeModal('accModal')">✕</button></div>
+    <label class="label">What was accomplished? *</label>
+    <input class="f" id="accTitle" placeholder="e.g. Completed roofing works 2nd floor" />
+    <label class="label">Details</label>
+    <textarea class="f" id="accDesc" placeholder="Quantity, measurements, area covered…"></textarea>
+    <div class="form-row">
+      <div style="flex:1">
+        <label class="label">Category</label>
+        <select class="f" id="accCat" style="margin-bottom:0">
+          <option value="structural">Structural</option>
+          <option value="finishing">Finishing</option>
+          <option value="electrical">Electrical</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="civil">Civil</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="label">% Complete</label>
+        <input class="f" id="accPct" placeholder="e.g. 75" type="number" min="0" max="100" style="margin-bottom:0" />
+      </div>
+    </div>
+    <button class="btn btn-full" onclick="addAccomplishment()">+ RECORD</button>
+  </div>
+</div>
+
+<div class="mo" id="rcModal">
+  <div class="md">
+    <div class="md-title">ADD RECEIPT <button class="mc" onclick="closeModal('rcModal')">✕</button></div>
+    <label class="label">Description *</label>
+    <input class="f" id="rcDesc" placeholder="What was purchased / paid for?" />
+    <label class="label">Amount (₱) *</label>
+    <input class="f" id="rcAmount" placeholder="0.00" type="number" min="0" />
+    <div class="form-row">
+      <div style="flex:1">
+        <label class="label">Category</label>
+        <select class="f" id="rcCat" style="margin-bottom:0">
+          <option value="materials">Materials</option>
+          <option value="labor">Labor</option>
+          <option value="equipment">Equipment</option>
+          <option value="transport">Transport</option>
+          <option value="office">Office</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="label">Supplier / Payee</label>
+        <input class="f" id="rcSupplier" placeholder="Name" style="margin-bottom:0" />
+      </div>
+    </div>
+    <label class="label" style="margin-top:10px">OR / Invoice No.</label>
+    <input class="f" id="rcRef" placeholder="Optional reference number" />
+    <label class="label">Notes</label>
+    <textarea class="f" id="rcNote" placeholder="Optional" style="min-height:56px"></textarea>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <input type="checkbox" id="rcSubmitted" style="width:18px;height:18px;cursor:pointer;accent-color:var(--orange)" />
+      <label for="rcSubmitted" style="font-family:var(--fm);font-size:11px;color:var(--muted);cursor:pointer">Already submitted to office</label>
+    </div>
+    <button class="btn btn-full" onclick="addReceipt()">+ SAVE RECEIPT</button>
+  </div>
+</div>
+
+<div class="mo" id="todoModal">
+  <div class="md">
+    <div class="md-title">ADD TASK <button class="mc" onclick="closeModal('todoModal')">✕</button></div>
+    <label class="label">Task *</label>
+    <input class="f" id="tdText" placeholder="What needs to be done?" />
+    <label class="label">Details / Notes</label>
+    <textarea class="f" id="tdNote" placeholder="Optional details" style="min-height:56px"></textarea>
+    <div class="form-row">
+      <div style="flex:1">
+        <label class="label">Due</label>
+        <select class="f" id="tdDue" style="margin-bottom:0">
+          <option value="today">📅 Today</option>
+          <option value="tomorrow" selected>➡ Tomorrow</option>
+          <option value="this-week">📆 This week</option>
+          <option value="asap">🔥 ASAP</option>
+          <option value="someday">🗓 Someday</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="label">Priority</label>
+        <select class="f" id="tdPri" style="margin-bottom:0">
+          <option value="normal">Normal</option>
+          <option value="urgent">🔴 Urgent</option>
+          <option value="low">⬇ Low</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-full" onclick="addTodo()">+ ADD TASK</button>
+  </div>
+</div>
+
+<!-- Photo viewer modal -->
+<div class="mo" id="photoViewModal">
+  <div class="md" style="max-width:700px">
+    <div class="md-title">PHOTO DETAIL <button class="mc" onclick="closeModal('photoViewModal')">✕</button></div>
+    <img id="photoViewImg" src="" alt="" style="width:100%;max-height:420px;object-fit:contain;border-radius:8px;background:var(--dark3);margin-bottom:14px"/>
+    <label class="label">Caption</label>
+    <input class="f" id="photoViewCaption" placeholder="Describe what's in this photo…" oninput="updatePhotoCaption()"/>
+    <div class="form-row" style="margin-top:2px">
+      <div style="flex:1">
+        <label class="label">Category</label>
+        <select class="f" id="photoViewCat" onchange="updatePhotoCaption()" style="margin-bottom:0">
+          <option value="progress">Progress</option>
+          <option value="issue">Issue / Problem</option>
+          <option value="completed">Completed Work</option>
+          <option value="materials">Materials</option>
+          <option value="safety">Safety</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="label">Date Taken</label>
+        <input class="f" id="photoViewDate" type="date" onchange="updatePhotoCaption()" style="margin-bottom:0"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-o" style="flex:1" onclick="downloadPhoto()">⬇ Download</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePhoto()">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let DB=JSON.parse(localStorage.getItem('sf4')||'null')||{projects:[],todos:[]};
+if(!DB.todos) DB.todos=[];
+let PID=null;
+let weekOffset=0;
+let rcFilter='all', todoFilter='all', actFilter='all';
+
+function save(){localStorage.setItem('sf4',JSON.stringify(DB));}
+function proj(){return DB.projects.find(p=>p.id===PID);}
+function todayKey(){return new Date().toISOString().slice(0,10);}
+function esc(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtDate(d){
+  const dt=new Date(d+'T00:00:00');
+  const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${D[dt.getDay()]} ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()}`;
+}
+function pctCls(p){return p>=75?'pb-hi':p>=40?'pb-mi':'pb-lo';}
+
+// ── CLOCK ──────────────────────────────────────
+function tick(){
+  const n=new Date(),D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('hTime').textContent=n.toLocaleTimeString('en-PH');
+  document.getElementById('hDate').textContent=`${D[n.getDay()]} ${n.getDate()} ${M[n.getMonth()]} ${n.getFullYear()}`;
+}
+setInterval(tick,1000);tick();
+
+// ── WEATHER ─────────────────────────────────────
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=17.15&longitude=121.89&current_weather=true');
+    const d=await r.json();const w=d.current_weather;
+    const icons={0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',51:'🌦',61:'🌧',80:'🌧',95:'⛈'};
+    const descs={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Drizzle',61:'Rain',80:'Rain showers',95:'Thunderstorm'};
+    document.getElementById('wIcon').textContent=icons[w.weathercode]||'🌡';
+    document.getElementById('wTemp').textContent=Math.round(w.temperature)+'°C';
+    document.getElementById('wDesc').textContent=descs[w.weathercode]||'—';
+    const h=document.getElementById('wHaz');
+    if([95].includes(w.weathercode)){h.textContent='HIGH';h.className='sb-wx-haz haz-hi';}
+    else if([61,80,51].includes(w.weathercode)){h.textContent='MOD';h.className='sb-wx-haz haz-mid';}
+    else{h.textContent='LOW';h.className='sb-wx-haz haz-low';}
+  }catch(e){document.getElementById('wDesc').textContent='Unavailable';}
+}
+fetchWeather();
+
+// ── SIDEBAR MOBILE ───────────────────────────────
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sbOverlay').classList.add('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbOverlay').classList.remove('open');}
+
+// ── MODALS ──────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));});
+
+// ── TOAST ───────────────────────────────────────
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ════════════════════════════════════════════════
+// HOME / PROJECTS
+// ════════════════════════════════════════════════
+function goHome(){
+  PID=null;
+  document.getElementById('sbProjBanner').style.display='none';
+  document.getElementById('sbNav').style.display='none';
+  document.getElementById('sbHomeNav').style.display='block';
+  document.getElementById('topbarTitle').textContent='MY PROJECTS';
+  document.getElementById('topbarRight').innerHTML='<button class="btn btn-sm" onclick="openModal(\'newProjModal\')">+ New Project</button>';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-home').classList.add('active');
+  renderProjects();
+  closeSidebar();
+}
+
+function renderProjects(){
+  const el=document.getElementById('projList');
+  if(!DB.projects.length){
+    el.innerHTML='<div class="empty"><div class="empty-ic">🏗</div>No projects yet.<br>Click "+ New Project" to get started.</div>';
+    return;
+  }
+  const today=todayKey();
+  const bgs=['#2a1e12','#12271e','#1a1a2a','#2a1a1a','#1a2a2a','#1e1a2a'];
+  el.innerHTML=DB.projects.map((p,idx)=>{
+    const present=p.workers.filter(w=>p.attendance[today+':'+w.id]==='present').length;
+    const half=p.workers.filter(w=>p.attendance[today+':'+w.id]==='half').length;
+    const todayActs=p.activities.filter(a=>a.date===today);
+    const overall=todayActs.length?Math.round(todayActs.reduce((s,a)=>s+(a.pct||0),0)/todayActs.length):0;
+    const unsubRc=(p.receipts||[]).filter(r=>!r.submitted).length;
+    return `<div class="proj-card" onclick="openProject(${p.id})">
+      <div class="proj-icon-big" style="background:${bgs[idx%bgs.length]}">${p.icon||'🏗'}</div>
+      <div class="proj-info">
+        <div class="proj-name">${esc(p.name)}</div>
+        <div class="proj-loc">${p.loc?'📍 '+esc(p.loc):''}</div>
+        <div class="proj-stats-row">
+          <span class="proj-stat">👷 <span>${present+half}</span> on site</span>
+          <span class="proj-stat">⚒️ <span>${todayActs.length}</span> activities</span>
+          ${todayActs.length?`<span class="proj-stat">📊 <span>${overall}%</span></span>`:''}
+          ${unsubRc?`<span class="proj-stat">⚠ <span>${unsubRc}</span> receipts pending</span>`:''}
+        </div>
+      </div>
+      <button class="proj-del" onclick="deleteProject(event,${p.id})">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function addProject(){
+  const name=document.getElementById('npName').value.trim();
+  if(!name){toast('Enter project name');return;}
+  DB.projects.push({
+    id:Date.now(),name,icon:document.getElementById('npIcon').value,
+    loc:document.getElementById('npLoc').value.trim(),
+    foreman:document.getElementById('npForeman').value.trim(),
+    company:document.getElementById('npCompany').value.trim(),
+    workers:[],attendance:{},activities:[],accomplishments:[],receipts:[]
+  });
+  save();
+  ['npName','npLoc','npForeman','npCompany'].forEach(id=>document.getElementById(id).value='');
+  closeModal('newProjModal');renderProjects();toast('✅ Project created!');
+}
+
+function deleteProject(e,id){
+  e.stopPropagation();
+  if(!confirm('Delete this project and all its data?'))return;
+  DB.projects=DB.projects.filter(p=>p.id!==id);
+  save();renderProjects();toast('Project deleted');
+}
+
+function openProject(id){
+  PID=id;const p=proj();
+  document.getElementById('sbProjBanner').style.display='flex';
+  document.getElementById('sbProjIcon').textContent=p.icon||'🏗';
+  document.getElementById('sbProjName').textContent=p.name;
+  document.getElementById('sbNav').style.display='block';
+  document.getElementById('sbHomeNav').style.display='none';
+  go('dash');closeSidebar();
+}
+
+// ════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════
+const screenTitles={dash:'Dashboard',attendance:'Attendance & Payroll',activities:'Activities',
+  accomplishments:'Accomplishments',summary:'Summary',receipts:'Receipts',todos:'To-Do List',
+  photos:'Site Photos',report:'Project Completion Report'};
+
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sb-nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  const tab=document.getElementById('tab-'+id);
+  if(tab) tab.classList.add('active');
+  document.getElementById('topbarTitle').textContent=(screenTitles[id]||id).toUpperCase();
+  const p=proj();
+  document.getElementById('topbarRight').innerHTML=`<span style="font-family:var(--fm);font-size:11px;color:var(--muted)">${p?esc(p.name):''}</span>`;
+  ({dash:renderDash,attendance:renderAttendance,activities:renderActivities,
+    accomplishments:renderAccomplishments,summary:renderSummary,
+    receipts:renderReceipts,todos:renderTodos,photos:renderPhotos,
+    report:renderReport})[id]?.();
+  closeSidebar();
+}
+
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+function renderDash(){
+  const p=proj();if(!p)return;
+  document.getElementById('piName').value=p.name||'';
+  document.getElementById('piLoc').value=p.loc||'';
+  document.getElementById('piForeman').value=p.foreman||'';
+  document.getElementById('piCompany').value=p.company||'';
+  const today=todayKey();
+  const present=p.workers.filter(w=>p.attendance[today+':'+w.id]==='present').length;
+  const half=p.workers.filter(w=>p.attendance[today+':'+w.id]==='half').length;
+  const todayActs=p.activities.filter(a=>a.date===today);
+  const todayAcc=p.accomplishments.filter(a=>a.date===today);
+  const pendingTodos=DB.todos.filter(t=>t.projId===PID&&!t.done);
+  document.getElementById('dPresent').textContent=present+half;
+  document.getElementById('dAct').textContent=todayActs.length;
+  document.getElementById('dAcc').textContent=todayAcc.length;
+  document.getElementById('dTodo').textContent=pendingTodos.length;
+  let lines=[];
+  if(p.workers.length){
+    const absent=p.workers.filter(w=>p.attendance[today+':'+w.id]==='absent').length;
+    const unmarked=p.workers.filter(w=>!p.attendance[today+':'+w.id]).length;
+    lines.push(`👷 <b>${present}</b> present · <b>${half}</b> half day · <b>${absent}</b> absent${unmarked?` · ${unmarked} unmarked`:''}`);
+  }
+  if(todayActs.length){
+    const done=todayActs.filter(a=>a.status==='done').length;
+    const delayed=todayActs.filter(a=>a.status==='delayed').length;
+    const ongoing=todayActs.filter(a=>a.status==='ongoing').length;
+    const overall=Math.round(todayActs.reduce((s,a)=>s+(a.pct||0),0)/todayActs.length);
+    lines.push(`⚒️ <b>${todayActs.length}</b> activities — ${ongoing} ongoing · ${done} done · ${delayed} delayed · <b>${overall}% overall</b>`);
+  }
+  if(todayAcc.length){
+    lines.push(`🏆 <b>${todayAcc.length}</b> accomplishment${todayAcc.length>1?'s':''} today:`);
+    todayAcc.forEach(a=>lines.push(`&nbsp;&nbsp;• ${esc(a.title)}`));
+  }
+  if(p.receipts){
+    const todayRc=p.receipts.filter(r=>r.date===today);
+    const unsubRc=p.receipts.filter(r=>!r.submitted);
+    if(todayRc.length) lines.push(`🧾 <b>${todayRc.length}</b> receipt${todayRc.length>1?'s':''} today — ₱${todayRc.reduce((s,r)=>s+r.amount,0).toLocaleString()}`);
+    if(unsubRc.length) lines.push(`⚠ <b>${unsubRc.length}</b> receipt${unsubRc.length>1?'s':''} pending submission`);
+  }
+  const urgent=pendingTodos.filter(t=>t.pri==='urgent');
+  if(pendingTodos.length) lines.push(`✅ <b>${pendingTodos.length}</b> pending task${pendingTodos.length>1?'s':''}${urgent.length?` · <span style="color:var(--red)">🔴 ${urgent.length} urgent</span>`:''}`);
+  // photos today
+  const todayPhotos=getPhotos().filter(ph=>ph.date===today);
+  if(todayPhotos.length) lines.push(`📷 <b>${todayPhotos.length}</b> site photo${todayPhotos.length>1?'s':''} uploaded today`);
+  document.getElementById('dashSum').innerHTML=lines.length?lines.join('<br>'):'No data yet for today.';
+}
+
+function saveProjInfo(){
+  const p=proj();if(!p)return;
+  p.name=document.getElementById('piName').value;
+  p.loc=document.getElementById('piLoc').value;
+  p.foreman=document.getElementById('piForeman').value;
+  p.company=document.getElementById('piCompany').value;
+  document.getElementById('sbProjName').textContent=p.name;
+  save();
+}
+
+// ════════════════════════════════════════════════
+// ATTENDANCE — WEEKLY SAT–FRI
+// ════════════════════════════════════════════════
+const DAY_NAMES=['SAT','MON','TUE','WED','THU','FRI'];
+const DAY_NAMES_FULL=['Saturday','Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+function getWeekSat(offset){
+  const today=new Date();
+  const dow=today.getDay();
+  const daysBack=dow===6?0:dow+1;
+  const sat=new Date(today);
+  sat.setDate(today.getDate()-daysBack+(offset*7));
+  sat.setHours(0,0,0,0);
+  return sat;
+}
+function weekDates(offset){
+  const sat=getWeekSat(offset);
+  return Array.from({length:6},(_,i)=>{
+    const d=new Date(sat);
+    d.setDate(sat.getDate()+[0,2,3,4,5,6][i]);
+    return d;
+  });
+}
+function dateKey(d){return d.toISOString().slice(0,10);}
+function shiftWeek(dir){weekOffset+=dir;renderAttendance();}
+
+function addWorker(){
+  const p=proj();if(!p)return;
+  const name=document.getElementById('wName').value.trim();
+  const role=document.getElementById('wRole').value.trim();
+  const rate=parseFloat(document.getElementById('wRate').value)||0;
+  if(!name){toast('Enter worker name');return;}
+  p.workers.push({id:Date.now(),name,role:role||'Worker',rate,addedDate:todayKey()});
+  save();
+  ['wName','wRole','wRate'].forEach(id=>document.getElementById(id).value='');
+  closeModal('wkModal');renderAttendance();toast('✅ Worker added');
+}
+
+function setAtt(wid,dk){
+  const p=proj();if(!p)return;
+  const key=dk+':'+wid;
+  const cur=p.attendance[key]||'none';
+  const next={none:'present',present:'half',half:'absent',absent:'none'}[cur];
+  if(next==='none') delete p.attendance[key];
+  else p.attendance[key]=next;
+  save();renderAttendance();
+}
+
+function deleteWorker(wid){
+  const p=proj();if(!p)return;
+  if(!confirm('Remove this worker?'))return;
+  p.workers=p.workers.filter(w=>w.id!==wid);
+  save();renderAttendance();toast('Worker removed');
+}
+
+function renderAttendance(){
+  const p=proj();if(!p)return;
+  const dates=weekDates(weekOffset);
+  const keys=dates.map(dateKey);
+  const today=todayKey();
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const s=dates[0],e=dates[5];
+  document.getElementById('weekLabel').textContent=
+    `${s.getDate()} ${months[s.getMonth()]} ${s.getFullYear()} — ${e.getDate()} ${months[e.getMonth()]} ${e.getFullYear()}`;
+
+  // Update dashboard present count
+  const todayPresent=p.workers.filter(w=>{
+    const a=p.attendance[today+':'+w.id];return a==='present'||a==='half';
+  }).length;
+  document.getElementById('dPresent').textContent=todayPresent;
+
+  const wrap=document.getElementById('payrollTableWrap');
+  if(!p.workers.length){
+    wrap.innerHTML='<div class="empty"><div class="empty-ic">👷</div>No workers yet. Click "+ Worker" to add.</div>';
+    document.getElementById('weekTotalBar').style.display='none';
+    return;
+  }
+
+  // Build table
+  let html=`<table class="tbl" style="min-width:700px">
+    <thead><tr>
+      <th style="min-width:160px">Name / Role</th>
+      ${dates.map((d,i)=>`<th style="text-align:center;${dateKey(d)===today?'color:var(--orange)':''}">
+        ${DAY_NAMES[i]}<br><span style="font-size:10px;font-weight:400">${d.getDate()}/${d.getMonth()+1}</span>
+      </th>`).join('')}
+      <th style="text-align:center">Days</th>
+      <th style="text-align:right">Rate</th>
+      <th style="text-align:right">Salary</th>
+      <th></th>
+    </tr></thead><tbody>`;
+
+  let grandTotal=0;
+  p.workers.forEach(w=>{
+    const rate=w.rate||0;
+    let days=0,salary=0;
+    const cells=dates.map((_,i)=>{
+      const dk=keys[i];
+      const att=p.attendance[dk+':'+w.id]||'none';
+      const isToday=dk===today;
+      if(att==='present'){days+=1;salary+=rate;}
+      else if(att==='half'){days+=.5;salary+=rate/2;}
+      return `<td style="text-align:center;padding:8px 4px">
+        <button class="day-cell ${att} ${isToday?'today-col':''}" onclick="setAtt(${w.id},'${dk}')">
+          ${att==='present'?'✓':att==='half'?'½':att==='absent'?'✗':'·'}
+        </button>
+      </td>`;
+    }).join('');
+    grandTotal+=salary;
+    html+=`<tr>
+      <td><div class="wk-name">${esc(w.name)}</div><div class="wk-role">${esc(w.role)}</div></td>
+      ${cells}
+      <td class="wk-days">${days||'—'}</td>
+      <td class="wk-rate">${rate?'₱'+rate.toLocaleString():'—'}</td>
+      <td class="wk-sal">${salary?'₱'+salary.toLocaleString():'—'}</td>
+      <td><button class="del-btn" onclick="deleteWorker(${w.id})">🗑</button></td>
+    </tr>`;
+  });
+  html+=`</tbody></table>`;
+  wrap.innerHTML=html;
+
+  // Total bar
+  const bar=document.getElementById('weekTotalBar');
+  bar.style.display='';
+  document.getElementById('weekTotal').textContent='₱'+grandTotal.toLocaleString();
+  const presentToday=p.workers.filter(w=>p.attendance[today+':'+w.id]==='present').length;
+  const halfToday=p.workers.filter(w=>p.attendance[today+':'+w.id]==='half').length;
+  const absentToday=p.workers.filter(w=>p.attendance[today+':'+w.id]==='absent').length;
+  document.getElementById('weekAttSummary').innerHTML=
+    `Today: <b style="color:var(--green)">${presentToday} present</b> · <b style="color:var(--orange)">${halfToday} half</b> · <b style="color:var(--red)">${absentToday} absent</b>`;
+}
+
+function printWeeklyPayroll(){
+  const p=proj();if(!p)return;
+  const dates=weekDates(weekOffset);
+  const keys=dates.map(dateKey);
+  const e=dates[5];
+  document.getElementById('pwCompany').textContent=p.company||'';
+  document.getElementById('pwProjName').textContent=p.name||'';
+  document.getElementById('pwProjLoc').textContent=p.loc||'';
+  document.getElementById('pwCharge').textContent=p.name||'';
+  document.getElementById('pwDate').textContent=`${e.getDate()}/${e.getMonth()+1}/${e.getFullYear()}`;
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const s=dates[0];
+  document.getElementById('pwParticulars').textContent=
+    `${s.getDate()} ${months[s.getMonth()]} – ${e.getDate()} ${months[e.getMonth()]} ${e.getFullYear()}`;
+  const allActs=[...new Set(p.activities.filter(a=>keys.includes(a.date)).map(a=>a.name))].join(', ');
+  document.getElementById('pwActivities').textContent=allActs||'—';
+  const th=v=>`<th style="border:1px solid #666;padding:5px 4px;background:#e8e8e8;font-size:9px;text-align:center">${v}</th>`;
+  document.getElementById('pwHead').innerHTML=`<tr>
+    ${th('#')}${th('N A M E')}
+    ${dates.map((d,i)=>th(DAY_NAMES_FULL[i]+'<br>'+d.getDate()+'/'+(d.getMonth()+1))).join('')}
+    ${th('No. of<br>Days')}${th('Daily<br>Rate')}${th('SALARY')}${th('SIGNATURE')}
+  </tr>`;
+  let grand=0;
+  const rows=p.workers.map((w,i)=>{
+    const rate=w.rate||0;let days=0,salary=0;
+    const cols=dates.map((_,di)=>{
+      const att=p.attendance[keys[di]+':'+w.id]||'none';
+      let val='';
+      if(att==='present'){val=rate.toLocaleString();days+=1;salary+=rate;}
+      else if(att==='half'){val=(rate/2).toLocaleString();days+=.5;salary+=rate/2;}
+      return `<td style="border:1px solid #ccc;padding:5px 4px;text-align:right;font-size:10px">${val}</td>`;
+    }).join('');
+    grand+=salary;
+    return `<tr>
+      <td style="border:1px solid #ccc;padding:5px 4px;text-align:center;font-size:10px">${i+1}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;font-size:10px;font-weight:600">${esc(w.name)}</td>
+      ${cols}
+      <td style="border:1px solid #ccc;padding:5px 4px;text-align:center;font-size:10px;font-weight:700">${days||''}</td>
+      <td style="border:1px solid #ccc;padding:5px 4px;text-align:right;font-size:10px">${rate?rate.toLocaleString():''}</td>
+      <td style="border:1px solid #ccc;padding:5px 4px;text-align:right;font-size:10px;font-weight:700">${salary?salary.toLocaleString():''}</td>
+      <td style="border:1px solid #ccc;padding:5px 4px;min-width:60px"></td>
+    </tr>`;
+  });
+  while(rows.length<10) rows.push(`<tr>
+    <td style="border:1px solid #ccc;padding:5px 4px;text-align:center;font-size:10px">${rows.length+1}</td>
+    <td style="border:1px solid #ccc;padding:5px 4px">-</td>
+    ${dates.map(()=>'<td style="border:1px solid #ccc;padding:5px 4px"></td>').join('')}
+    <td style="border:1px solid #ccc;padding:5px 4px"></td><td style="border:1px solid #ccc;padding:5px 4px"></td>
+    <td style="border:1px solid #ccc;padding:5px 4px"></td><td style="border:1px solid #ccc;padding:5px 4px"></td>
+  </tr>`);
+  document.getElementById('pwBody').innerHTML=rows.join('');
+  document.getElementById('pwTotal').textContent='₱'+grand.toLocaleString();
+  window.print();
+}
+
+// ════════════════════════════════════════════════
+// ACTIVITIES
+// ════════════════════════════════════════════════
+function setActFilter(f,btn){
+  actFilter=f;
+  document.querySelectorAll('#screen-activities .fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderActivities();
+}
+
+function addActivity(){
+  const p=proj();if(!p)return;
+  const name=document.getElementById('actName').value.trim();
+  if(!name){toast('Enter activity description');return;}
+  p.activities.push({
+    id:Date.now(),date:todayKey(),name,
+    area:document.getElementById('actArea').value.trim(),
+    status:document.getElementById('actStatus').value,
+    pct:parseInt(document.getElementById('actPct').value)||0,
+    workers:document.getElementById('actWk').value||'',
+    notes:document.getElementById('actNotes').value.trim()
+  });
+  save();
+  ['actName','actArea','actPct','actWk','actNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('actStatus').value='ongoing';
+  closeModal('actModal');renderActivities();
+  document.getElementById('dAct').textContent=p.activities.filter(a=>a.date===todayKey()).length;
+  toast('✅ Activity logged');
+}
+
+function deleteActivity(id){
+  const p=proj();if(!p)return;
+  if(!confirm('Delete this activity and its photos?'))return;
+  // delete associated photos
+  const photos=getActPhotos(id);
+  if(photos.length) localStorage.removeItem('sf_actphotos_'+PID+'_'+id);
+  p.activities=p.activities.filter(a=>a.id!==id);
+  save();renderActivities();
+  document.getElementById('dAct').textContent=p.activities.filter(a=>a.date===todayKey()).length;
+  toast('Removed');
+}
+
+// ── Per-activity photo storage ──────────────────
+// Key: sf_actphotos_<projId>_<actId>  → array of {id, dataUrl, caption}
+function getActPhotos(actId){
+  try{ return JSON.parse(localStorage.getItem('sf_actphotos_'+PID+'_'+actId)||'[]'); }
+  catch(e){ return []; }
+}
+function saveActPhotos(actId, photos){
+  try{ localStorage.setItem('sf_actphotos_'+PID+'_'+actId, JSON.stringify(photos)); }
+  catch(e){ toast('⚠ Storage full — try deleting some photos'); }
+}
+
+let currentActId=null; // which activity's photo modal is open
+let lightboxPhotoActId=null;
+let lightboxPhotoId=null;
+
+function openActPhotoModal(actId){
+  const p=proj();if(!p)return;
+  const act=p.activities.find(a=>a.id===actId);
+  if(!act)return;
+  currentActId=actId;
+  document.getElementById('actPhotoModalTitle').innerHTML=
+    `📷 ${esc(act.name)} <button class="mc" onclick="closeModal('actPhotoModal')">✕</button>`;
+  renderActPhotoGrid();
+  openModal('actPhotoModal');
+}
+
+function renderActPhotoGrid(){
+  if(!currentActId)return;
+  const photos=getActPhotos(currentActId);
+  const grid=document.getElementById('actPhotoGrid');
+  if(!photos.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:20px;font-family:var(--fm);font-size:11px;color:var(--muted)">No photos yet. Upload above.</div>`;
+    return;
+  }
+  grid.innerHTML=photos.map(ph=>`
+    <div style="position:relative">
+      <img src="${ph.dataUrl}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--mid);transition:border-color .15s"
+        onclick="openLightbox(${currentActId},${JSON.stringify(ph.id)})"
+        onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--mid)'"/>
+      <button onclick="deleteActPhoto(${JSON.stringify(ph.id)})"
+        style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,.7);border:none;border-radius:50%;width:24px;height:24px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      ${ph.caption?`<div style="font-size:11px;color:var(--muted);margin-top:4px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ph.caption)}</div>`:''}
+    </div>`).join('');
+}
+
+function handleActPhotoUpload(event){
+  const files=Array.from(event.target.files);
+  if(!files.length||!currentActId)return;
+  processActPhotoFiles(files);
+  event.target.value='';
+}
+
+function handleActPhotoDrop(event){
+  event.preventDefault();
+  document.getElementById('actPhotoDropZone').style.borderColor='var(--mid)';
+  const files=Array.from(event.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  if(!files.length){toast('Please drop image files only');return;}
+  processActPhotoFiles(files);
+}
+
+function processActPhotoFiles(files){
+  if(!currentActId)return;
+  let loaded=0;
+  const photos=getActPhotos(currentActId);
+  const dz=document.getElementById('actPhotoDropZone');
+  dz.innerHTML=`<div style="font-family:var(--fm);font-size:11px;color:var(--muted)">Uploading ${files.length} photo${files.length>1?'s':''}…</div>
+    <div style="background:var(--dark3);border-radius:4px;height:4px;overflow:hidden;margin:10px auto 0;max-width:180px"><div id="actUploadBar" style="height:100%;background:var(--orange);width:0%;transition:width .3s"></div></div>`;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      compressImage(e.target.result, file.type, compressed=>{
+        photos.push({
+          id: Date.now()+Math.random(),
+          dataUrl: compressed,
+          caption: ''
+        });
+        loaded++;
+        const bar=document.getElementById('actUploadBar');
+        if(bar) bar.style.width=Math.round(loaded/files.length*100)+'%';
+        if(loaded===files.length){
+          saveActPhotos(currentActId, photos);
+          renderActPhotoGrid();
+          renderActivities(); // refresh strip
+          resetActDropZone();
+          toast(`✅ ${files.length} photo${files.length>1?'s':''} added`);
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function resetActDropZone(){
+  document.getElementById('actPhotoDropZone').innerHTML=`
+    <div style="font-size:28px;margin-bottom:6px">📷</div>
+    <div style="font-family:var(--fm);font-size:11px;color:var(--muted);text-transform:uppercase">Click or drag photos here</div>
+    <div style="font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:4px">Multiple files supported · JPG, PNG, HEIC</div>`;
+}
+
+function deleteActPhoto(photoId){
+  if(!currentActId)return;
+  const photos=getActPhotos(currentActId).filter(p=>p.id!=photoId);
+  saveActPhotos(currentActId, photos);
+  renderActPhotoGrid();
+  renderActivities();
+  toast('Photo deleted');
+}
+
+function openLightbox(actId, photoId){
+  const photos=getActPhotos(actId);
+  const ph=photos.find(p=>p.id==photoId);
+  if(!ph)return;
+  lightboxPhotoActId=actId;
+  lightboxPhotoId=photoId;
+  document.getElementById('lightboxImg').src=ph.dataUrl;
+  document.getElementById('lightboxCaption').textContent=ph.caption||'';
+  openModal('lightboxModal');
+}
+
+function downloadLightboxPhoto(){
+  if(!lightboxPhotoActId||!lightboxPhotoId)return;
+  const ph=getActPhotos(lightboxPhotoActId).find(p=>p.id==lightboxPhotoId);
+  if(!ph)return;
+  const a=document.createElement('a');
+  a.href=ph.dataUrl;
+  a.download='site-photo.jpg';
+  a.click();
+}
+
+function deleteLightboxPhoto(){
+  if(!lightboxPhotoActId||!lightboxPhotoId)return;
+  if(!confirm('Delete this photo?'))return;
+  const photos=getActPhotos(lightboxPhotoActId).filter(p=>p.id!=lightboxPhotoId);
+  saveActPhotos(lightboxPhotoActId, photos);
+  closeModal('lightboxModal');
+  // refresh modal grid if open
+  if(currentActId===lightboxPhotoActId) renderActPhotoGrid();
+  renderActivities();
+  toast('Photo deleted');
+}
+
+function renderActivities(){
+  const p=proj();if(!p)return;
+  const today=todayKey();
+  let acts=[...p.activities].filter(a=>a.date===today);
+  if(actFilter!=='all') acts=acts.filter(a=>a.status===actFilter);
+  acts.reverse();
+  const list=document.getElementById('actList');
+  if(!acts.length){
+    list.innerHTML='<div class="empty"><div class="empty-ic">⚒️</div>No activities for today yet.</div>';
+    return;
+  }
+  list.innerHTML=acts.map((a,i)=>{
+    const pct=a.pct||0;
+    const photos=getActPhotos(a.id);
+    const photoCount=photos.length;
+
+    // Build photo strip (show up to 6 thumbs + add button)
+    const thumbs=photos.slice(0,6).map(ph=>
+      `<img class="act-photo-thumb" src="${ph.dataUrl}" onclick="openLightbox(${a.id},${JSON.stringify(ph.id)})" title="Click to view"/>`
+    ).join('');
+    const moreLabel=photoCount>6?`<div style="font-family:var(--fm);font-size:10px;color:var(--muted);align-self:center">+${photoCount-6} more</div>`:'';
+    const addBtn=`<div class="act-photo-add" onclick="openActPhotoModal(${a.id})">
+      <div class="act-photo-add-icon">📷</div>
+      <div class="act-photo-add-label">Add<br>Photos</div>
+    </div>`;
+
+    return `<div class="act-card">
+      <div class="act-card-header" onclick="this.parentElement.classList.toggle('expanded')">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-family:var(--fm);font-size:10px;color:var(--muted)">${i+1}</span>
+            <div class="act-card-name">${esc(a.name)}</div>
+            <span class="badge bg-${a.status}">${a.status}</span>
+          </div>
+          <div class="act-card-meta">
+            ${a.area?`<span class="act-card-area">📍 ${esc(a.area)}</span>`:''}
+            ${a.workers?`<span class="act-card-workers">👷 ${a.workers} worker${a.workers>1?'s':''}</span>`:''}
+            <span class="act-photo-count">${photoCount?`📷 ${photoCount} photo${photoCount!==1?'s':''}`:'📷 No photos'}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="act-progress-row" style="margin:0">
+            <div class="pw" style="width:80px"><div class="pb ${pctCls(pct)}" style="width:${pct}%"></div></div>
+            <div class="act-pct-label" style="font-size:18px">${pct}%</div>
+          </div>
+          <button class="del-btn" onclick="event.stopPropagation();deleteActivity(${a.id})">🗑</button>
+        </div>
+      </div>
+      <div class="act-card-body">
+        ${a.notes?`<div class="act-card-notes">${esc(a.notes)}</div>`:''}
+        <div class="act-photo-strip">
+          ${thumbs}
+          ${moreLabel}
+          ${addBtn}
+        </div>
+        ${photoCount>6?`<button class="btn btn-o btn-sm" style="margin-top:6px" onclick="openActPhotoModal(${a.id})">View all ${photoCount} photos</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+// ACCOMPLISHMENTS
+// ════════════════════════════════════════════════
+function addAccomplishment(){
+  const p=proj();if(!p)return;
+  const title=document.getElementById('accTitle').value.trim();
+  if(!title){toast('Enter accomplishment');return;}
+  p.accomplishments.push({
+    id:Date.now(),date:todayKey(),title,
+    desc:document.getElementById('accDesc').value.trim(),
+    cat:document.getElementById('accCat').value,
+    pct:document.getElementById('accPct').value
+  });
+  save();
+  ['accTitle','accDesc','accPct'].forEach(id=>document.getElementById(id).value='');
+  closeModal('accModal');renderAccomplishments();
+  document.getElementById('dAcc').textContent=p.accomplishments.filter(a=>a.date===todayKey()).length;
+  toast('🏆 Recorded!');
+}
+
+function deleteAccomplishment(id){
+  const p=proj();if(!p)return;
+  p.accomplishments=p.accomplishments.filter(a=>a.id!==id);
+  save();renderAccomplishments();
+  document.getElementById('dAcc').textContent=p.accomplishments.filter(a=>a.date===todayKey()).length;
+  toast('Removed');
+}
+
+function renderAccomplishments(){
+  const p=proj();if(!p)return;
+  const byDate={};
+  [...p.accomplishments].reverse().forEach(a=>{
+    if(!byDate[a.date])byDate[a.date]=[];
+    byDate[a.date].push(a);
+  });
+  const list=document.getElementById('accList');
+  if(!p.accomplishments.length){list.innerHTML='<div class="empty"><div class="empty-ic">🏆</div>No accomplishments yet.</div>';return;}
+  list.innerHTML=Object.entries(byDate).map(([date,items])=>`
+    <div class="dgl">📅 ${fmtDate(date)}${date===todayKey()?' · TODAY':''}</div>
+    <div class="card" style="margin-bottom:14px">
+    ${items.map(a=>`<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--dark3)">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${esc(a.title)}</div>
+        ${a.desc?`<div style="font-size:13px;color:var(--muted);margin-bottom:6px">${esc(a.desc)}</div>`:''}
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="ac-tag ${a.cat}">${a.cat}</span>
+          ${a.pct?`<span class="ac-pct">${a.pct}% complete</span>`:''}
+        </div>
+      </div>
+      <button class="del-btn" onclick="deleteAccomplishment(${a.id})">🗑</button>
+    </div>`).join('')}
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// SUMMARY
+// ════════════════════════════════════════════════
+function renderSummary(){
+  const p=proj();if(!p)return;
+  const today=todayKey();
+  const todayActs=p.activities.filter(a=>a.date===today);
+  const todayAcc=p.accomplishments.filter(a=>a.date===today);
+  const overall=todayActs.length?Math.round(todayActs.reduce((s,a)=>s+(a.pct||0),0)/todayActs.length):0;
+  let html=`<div class="page-grid">
+    <div>
+      <div class="card" style="text-align:center">
+        <div style="font-family:var(--fm);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:8px">Overall Progress Today</div>
+        <div class="ov-pct">${overall}%</div>
+        <div class="ov-lbl">${todayActs.length} activit${todayActs.length===1?'y':'ies'}</div>
+        <div class="ov-pw"><div class="ov-pb" style="width:${overall}%"></div></div>
+        <div style="display:flex;justify-content:space-around;font-family:var(--fm);font-size:11px">
+          <span style="color:var(--green)">✓ ${todayActs.filter(a=>a.status==='done').length} Done</span>
+          <span style="color:var(--blue)">⟳ ${todayActs.filter(a=>a.status==='ongoing').length} Ongoing</span>
+          <span style="color:var(--red)">! ${todayActs.filter(a=>a.status==='delayed').length} Delayed</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">🏆 Accomplishments Today</div>
+        ${todayAcc.length?todayAcc.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--dark3)">
+          <div style="display:flex;justify-content:space-between">
+            <div style="font-size:13px;font-weight:600">${esc(a.title)}</div>
+            ${a.pct?`<div style="font-family:var(--fm);font-size:11px;color:var(--yellow)">${a.pct}%</div>`:''}
+          </div>
+          ${a.desc?`<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(a.desc)}</div>`:''}
+          <span class="ac-tag ${a.cat}" style="margin-top:5px;display:inline-block">${a.cat}</span>
+        </div>`).join(''):'<div style="color:var(--muted);font-family:var(--fm);font-size:12px">None recorded today</div>'}
+      </div>
+    </div>
+  </div>`;
+  if(todayActs.length){
+    html+=`<div class="card"><div class="card-title">⚒️ Activities Breakdown</div>
+      ${todayActs.map(a=>{const pct=a.pct||0;return `
+        <div class="sum-row">
+          <div><div class="sum-name">${esc(a.name)}</div>${a.area?`<div class="sum-area">📍 ${esc(a.area)}</div>`:''}</div>
+          <div style="text-align:right"><span class="badge bg-${a.status}">${a.status}</span></div>
+          <div><div class="sum-pct">${pct}%</div><div class="pw" style="margin-top:4px"><div class="pb ${pctCls(pct)}" style="width:${pct}%"></div></div></div>
+        </div>`}).join('')}
+    </div>`;
+  }
+  document.getElementById('sumContent').innerHTML=html||'<div class="empty"><div class="empty-ic">📊</div>No data yet for today.</div>';
+}
+
+function printSum(){
+  const p=proj();if(!p)return;
+  const today=todayKey();
+  const todayActs=p.activities.filter(a=>a.date===today);
+  const todayAcc=p.accomplishments.filter(a=>a.date===today);
+  const overall=todayActs.length?Math.round(todayActs.reduce((s,a)=>s+(a.pct||0),0)/todayActs.length):0;
+  document.getElementById('sProjName').textContent=p.name||'';
+  document.getElementById('sProjLoc').textContent=p.loc||'';
+  document.getElementById('sDate').textContent=fmtDate(today);
+  document.getElementById('sForeman').textContent=p.foreman||'—';
+  document.getElementById('sOverall').textContent=overall+'%';
+  document.getElementById('sActBody').innerHTML=todayActs.map((a,i)=>`<tr>
+    <td style="padding:7px 6px;border:1px solid #ccc;text-align:center">${i+1}</td>
+    <td style="padding:7px 6px;border:1px solid #ccc;font-weight:600">${esc(a.name)}</td>
+    <td style="padding:7px 6px;border:1px solid #ccc;font-size:11px">${esc(a.area||'—')}</td>
+    <td style="padding:7px 6px;border:1px solid #ccc;font-weight:700;color:${a.status==='done'?'#166534':a.status==='delayed'?'#991b1b':'#1e40af'}">${a.status.toUpperCase()}</td>
+    <td style="padding:7px 6px;border:1px solid #ccc;text-align:center;font-weight:900">${a.pct||0}%</td>
+    <td style="padding:7px 6px;border:1px solid #ccc;font-size:11px">${esc(a.notes||'—')}</td>
+  </tr>`).join('')||`<tr><td colspan="6" style="padding:10px;text-align:center;color:#999;border:1px solid #ccc">No activities today</td></tr>`;
+  document.getElementById('sAccList').innerHTML=todayAcc.length
+    ?todayAcc.map((a,i)=>`<div style="padding:5px 0;border-bottom:1px solid #eee;font-size:12px">
+      <b>${i+1}. ${esc(a.title)}</b>${a.pct?` — <b>${a.pct}% complete</b>`:''}
+      ${a.desc?`<div style="color:#555;margin-top:2px">${esc(a.desc)}</div>`:''}
+    </div>`).join('')
+    :'<div style="color:#999;font-size:12px">No accomplishments today</div>';
+  window.print();
+}
+
+// ════════════════════════════════════════════════
+// RECEIPTS
+// ════════════════════════════════════════════════
+function addReceipt(){
+  const p=proj();if(!p)return;
+  const desc=document.getElementById('rcDesc').value.trim();
+  const amount=parseFloat(document.getElementById('rcAmount').value)||0;
+  if(!desc){toast('Enter description');return;}
+  if(!amount){toast('Enter amount');return;}
+  if(!p.receipts)p.receipts=[];
+  p.receipts.push({
+    id:Date.now(),date:todayKey(),desc,amount,
+    cat:document.getElementById('rcCat').value,
+    supplier:document.getElementById('rcSupplier').value.trim(),
+    ref:document.getElementById('rcRef').value.trim(),
+    note:document.getElementById('rcNote').value.trim(),
+    submitted:document.getElementById('rcSubmitted').checked
+  });
+  save();
+  ['rcDesc','rcAmount','rcSupplier','rcRef','rcNote'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rcSubmitted').checked=false;
+  closeModal('rcModal');renderReceipts();toast('🧾 Receipt saved!');
+}
+
+function toggleSubmitted(id){
+  const p=proj();if(!p)return;
+  const r=p.receipts.find(r=>r.id===id);
+  if(r){r.submitted=!r.submitted;save();renderReceipts();}
+}
+
+function deleteReceipt(id){
+  const p=proj();if(!p)return;
+  p.receipts=p.receipts.filter(r=>r.id!==id);
+  save();renderReceipts();toast('Removed');
+}
+
+function setRcFilter(f,btn){
+  rcFilter=f;
+  document.querySelectorAll('#screen-receipts .fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderReceipts();
+}
+
+function renderReceipts(){
+  const p=proj();if(!p)return;
+  if(!p.receipts)p.receipts=[];
+  let items=[...p.receipts].reverse();
+  if(rcFilter==='unsubmitted')items=items.filter(r=>!r.submitted);
+  else if(rcFilter==='submitted')items=items.filter(r=>r.submitted);
+  else if(rcFilter!=='all')items=items.filter(r=>r.cat===rcFilter);
+  const total=p.receipts.reduce((s,r)=>s+r.amount,0);
+  const unsub=p.receipts.filter(r=>!r.submitted).reduce((s,r)=>s+r.amount,0);
+  document.getElementById('rcTotal').textContent='₱'+total.toLocaleString();
+  document.getElementById('rcUnsubAmt').textContent=unsub>0?`⚠ ₱${unsub.toLocaleString()} pending submission`:'';
+  const list=document.getElementById('rcList');
+  if(!items.length){list.innerHTML='<div class="empty"><div class="empty-ic">🧾</div>No receipts for this filter.</div>';return;}
+  list.innerHTML=items.map(r=>`
+    <div class="rc-item">
+      <div>
+        <div class="rc-desc">${esc(r.desc)}</div>
+        ${r.supplier?`<div style="font-size:12px;color:var(--muted);margin-top:3px">🏪 ${esc(r.supplier)}</div>`:''}
+        ${r.ref?`<div style="font-family:var(--fm);font-size:10px;color:var(--muted)">OR/INV: ${esc(r.ref)}</div>`:''}
+        ${r.note?`<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(r.note)}</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--fd);font-size:24px;color:var(--yellow)">₱${r.amount.toLocaleString()}</div>
+      </div>
+      <div class="rc-meta">
+        <span class="rc-tag ${r.cat}">${r.cat}</span>
+        <span style="font-family:var(--fm);font-size:10px;color:var(--muted)">📅 ${fmtDate(r.date)}</span>
+        <span class="rc-sub ${r.submitted?'yes':'no'}" onclick="toggleSubmitted(${r.id})">${r.submitted?'✓ Submitted':'⚠ Not submitted'}</span>
+        <button class="del-btn" style="margin-left:auto" onclick="deleteReceipt(${r.id})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function copyReceipts(){
+  const p=proj();if(!p)return;
+  if(!p.receipts||!p.receipts.length){toast('No receipts to copy');return;}
+  let txt=`RECEIPTS — ${p.name}\n${'─'.repeat(30)}\n`;
+  const byDate={};
+  [...p.receipts].reverse().forEach(r=>{if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r);});
+  let total=0;
+  Object.entries(byDate).forEach(([date,items])=>{
+    txt+=`\n📅 ${fmtDate(date)}\n`;
+    items.forEach(r=>{
+      txt+=`  ${r.submitted?'[✓]':'[⚠]'} ${r.desc}`;
+      if(r.supplier)txt+=` — ${r.supplier}`;
+      if(r.ref)txt+=` (${r.ref})`;
+      txt+=` — ₱${r.amount.toLocaleString()}\n`;
+      total+=r.amount;
+    });
+  });
+  txt+=`\nTOTAL: ₱${total.toLocaleString()}`;
+  const unsub=p.receipts.filter(r=>!r.submitted).reduce((s,r)=>s+r.amount,0);
+  if(unsub>0)txt+=`\nPENDING: ₱${unsub.toLocaleString()}`;
+  navigator.clipboard.writeText(txt).then(()=>toast('📋 Copied!')).catch(()=>toast('Copy failed'));
+}
+
+// ════════════════════════════════════════════════
+// TO-DO
+// ════════════════════════════════════════════════
+const dueLabelMap={today:'📅 Today',tomorrow:'➡ Tomorrow','this-week':'📆 This week',asap:'🔥 ASAP',someday:'🗓 Someday'};
+const dueSortMap={asap:0,today:1,tomorrow:2,'this-week':3,someday:4};
+
+function addTodo(){
+  const p=proj();if(!p)return;
+  const text=document.getElementById('tdText').value.trim();
+  if(!text){toast('Enter task');return;}
+  DB.todos.push({
+    id:Date.now(),projId:PID,projName:p.name,text,
+    note:document.getElementById('tdNote').value.trim(),
+    due:document.getElementById('tdDue').value,
+    pri:document.getElementById('tdPri').value,
+    done:false,created:todayKey()
+  });
+  save();
+  ['tdText','tdNote'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('tdDue').value='tomorrow';
+  document.getElementById('tdPri').value='normal';
+  closeModal('todoModal');renderTodos();toast('✅ Task added!');
+}
+
+function toggleTodo(id){
+  const t=DB.todos.find(t=>t.id===id);
+  if(t){t.done=!t.done;save();renderTodos();}
+}
+
+function deleteTodo(id){
+  DB.todos=DB.todos.filter(t=>t.id!==id);
+  save();renderTodos();toast('Removed');
+}
+
+function clearDoneTodos(){
+  const count=DB.todos.filter(t=>t.done&&t.projId===PID).length;
+  if(!count){toast('No completed tasks');return;}
+  DB.todos=DB.todos.filter(t=>!(t.done&&t.projId===PID));
+  save();renderTodos();toast(`Cleared ${count} task${count>1?'s':''}`);
+}
+
+function setTodoFilter(f,btn){
+  todoFilter=f;
+  document.querySelectorAll('#screen-todos .fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderTodos();
+}
+
+function renderTodos(){
+  const p=proj();if(!p)return;
+  let items=DB.todos.filter(t=>t.projId===PID);
+  if(todoFilter==='today')items=items.filter(t=>t.due==='today'&&!t.done);
+  else if(todoFilter==='tomorrow')items=items.filter(t=>t.due==='tomorrow'&&!t.done);
+  else if(todoFilter==='pending')items=items.filter(t=>!t.done);
+  else if(todoFilter==='done')items=items.filter(t=>t.done);
+  else if(todoFilter==='urgent')items=items.filter(t=>t.pri==='urgent'&&!t.done);
+  items.sort((a,b)=>{
+    if(a.done!==b.done)return a.done?1:-1;
+    if(a.pri==='urgent'&&b.pri!=='urgent')return -1;
+    if(b.pri==='urgent'&&a.pri!=='urgent')return 1;
+    return (dueSortMap[a.due]||99)-(dueSortMap[b.due]||99);
+  });
+  const all=DB.todos.filter(t=>t.projId===PID);
+  const pending=all.filter(t=>!t.done);
+  const urgent=pending.filter(t=>t.pri==='urgent');
+  document.getElementById('todoStats').innerHTML=pending.length
+    ?`<b style="color:var(--yellow)">${pending.length}</b> tasks pending<br>${urgent.length?`<b style="color:var(--red)">🔴 ${urgent.length}</b> urgent<br>`:''}${all.filter(t=>t.done).length} completed`
+    :'All done! 🎉';
+  document.getElementById('dTodo').textContent=pending.length;
+  const list=document.getElementById('todoList');
+  if(!items.length){list.innerHTML='<div class="empty" style="padding:20px"><div class="empty-ic">✅</div>No tasks here.</div>';return;}
+  list.innerHTML=items.map(t=>`
+    <div class="todo-item">
+      <div class="todo-check ${t.done?'done-c':''}" onclick="toggleTodo(${t.id})">${t.done?'✓':''}</div>
+      <div style="flex:1">
+        <div class="todo-text ${t.done?'striked':''}">${t.pri==='urgent'&&!t.done?'🔴 ':''}${esc(t.text)}</div>
+        ${t.note?`<div class="todo-note">${esc(t.note)}</div>`:''}
+        <div class="todo-due">${dueLabelMap[t.due]||t.due}</div>
+      </div>
+      <button class="del-btn" onclick="deleteTodo(${t.id})">🗑</button>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// PHOTOS
+// ════════════════════════════════════════════════
+// Photos are stored as base64 in localStorage per project
+// Key: 'sf_photos_<projectId>'  Value: array of photo objects
+// { id, date, caption, cat, dataUrl }
+// We store separately from DB to avoid hitting localStorage size limit per key
+
+function getPhotos(){
+  if(!PID) return [];
+  try{
+    return JSON.parse(localStorage.getItem('sf_photos_'+PID)||'[]');
+  }catch(e){return [];}
+}
+function savePhotos(photos){
+  try{
+    localStorage.setItem('sf_photos_'+PID, JSON.stringify(photos));
+  }catch(e){
+    toast('⚠ Storage full — try deleting some old photos');
+  }
+}
+
+let currentPhotoId=null;
+let photoDateFilter='all';
+
+function handlePhotoUpload(event){
+  const files=Array.from(event.target.files);
+  if(!files.length) return;
+  processPhotoFiles(files);
+  event.target.value=''; // reset input
+}
+
+function handlePhotoDrop(event){
+  event.preventDefault();
+  document.getElementById('photoDropZone').style.borderColor='var(--mid)';
+  const files=Array.from(event.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  if(!files.length){toast('Please drop image files only');return;}
+  processPhotoFiles(files);
+}
+
+function processPhotoFiles(files){
+  const p=proj(); if(!p) return;
+  let loaded=0;
+  const photos=getPhotos();
+  const total=files.length;
+
+  // Show uploading feedback
+  const dropZone=document.getElementById('photoDropZone');
+  dropZone.innerHTML=`<div style="font-family:var(--fm);font-size:12px;color:var(--muted);text-transform:uppercase">Uploading ${total} photo${total>1?'s':''}…</div>
+    <div class="upload-progress" style="max-width:200px;margin:10px auto 0"><div class="upload-progress-bar" id="uploadBar" style="width:0%"></div></div>`;
+
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      // Compress image before storing
+      compressImage(e.target.result, file.type, (compressed)=>{
+        photos.unshift({
+          id:Date.now()+Math.random(),
+          date:todayKey(),
+          caption: file.name.replace(/\.[^.]+$/,'').replace(/[_-]/g,' '),
+          cat:'progress',
+          dataUrl: compressed,
+          uploadedAt: Date.now()
+        });
+        loaded++;
+        const pct=Math.round(loaded/total*100);
+        const bar=document.getElementById('uploadBar');
+        if(bar) bar.style.width=pct+'%';
+        if(loaded===total){
+          savePhotos(photos);
+          renderPhotos();
+          resetDropZone();
+          toast(`✅ ${total} photo${total>1?'s':''} uploaded!`);
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImage(dataUrl, type, callback){
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');
+    // Max 1200px wide, maintain aspect ratio
+    const MAX=1200;
+    let w=img.width, h=img.height;
+    if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+    canvas.width=w; canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    callback(canvas.toDataURL('image/jpeg',0.75));
+  };
+  img.src=dataUrl;
+}
+
+function resetDropZone(){
+  document.getElementById('photoDropZone').innerHTML=`
+    <div style="font-size:40px;margin-bottom:10px">📷</div>
+    <div style="font-family:var(--fm);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Click or drag photos here to upload</div>
+    <div style="font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:6px">JPG, PNG, HEIC supported · Multiple files at once</div>`;
+}
+
+function setPhotoDateFilter(date, btn){
+  photoDateFilter=date;
+  document.querySelectorAll('#photoDateFilter .fp').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPhotos();
+}
+
+function renderPhotos(){
+  const p=proj(); if(!p) return;
+  let photos=getPhotos();
+  const catFilter=document.getElementById('photoCatFilter').value;
+
+  // Filter
+  if(photoDateFilter!=='all') photos=photos.filter(ph=>ph.date===photoDateFilter);
+  if(catFilter!=='all') photos=photos.filter(ph=>ph.cat===catFilter);
+
+  // Update count
+  const allPhotos=getPhotos();
+  document.getElementById('photoCount').textContent=allPhotos.length+' photo'+(allPhotos.length!==1?'s':'');
+
+  // Build date filter buttons from all unique dates
+  const allDates=[...new Set(allPhotos.map(ph=>ph.date))].sort().reverse();
+  const dateFilterEl=document.getElementById('photoDateFilter');
+  dateFilterEl.innerHTML=`<button class="fp ${photoDateFilter==='all'?'active':''}" onclick="setPhotoDateFilter('all',this)">All Dates</button>`
+    +allDates.map(d=>`<button class="fp ${photoDateFilter===d?'active':''}" onclick="setPhotoDateFilter('${d}',this)">${fmtDateShort(d)}</button>`).join('');
+
+  const grid=document.getElementById('photoGrid');
+  if(!photos.length){
+    grid.innerHTML='<div class="empty" style="grid-column:1/-1;padding:40px"><div class="empty-ic">📷</div>No photos yet. Upload some above.</div>';
+    return;
+  }
+
+  // Group by date
+  const byDate={};
+  photos.forEach(ph=>{
+    if(!byDate[ph.date]) byDate[ph.date]=[];
+    byDate[ph.date].push(ph);
+  });
+
+  grid.innerHTML=Object.entries(byDate).map(([date,items])=>`
+    <div class="photo-date-group">📅 ${fmtDate(date)}${date===todayKey()?' · TODAY':''} &nbsp;<span style="color:var(--muted)">(${items.length} photo${items.length!==1?'s':''})</span></div>
+    ${items.map(ph=>`
+      <div class="photo-card" onclick="openPhotoViewer(${JSON.stringify(ph.id)})">
+        <img src="${ph.dataUrl}" alt="${esc(ph.caption)}" loading="lazy"/>
+        <button class="photo-del" onclick="event.stopPropagation();deletePhotoById(${JSON.stringify(ph.id)})">✕</button>
+        <div class="photo-card-body">
+          <div class="photo-caption">${esc(ph.caption)||'Untitled'}</div>
+          <div class="photo-meta">
+            <span class="photo-cat ${ph.cat}">${ph.cat}</span>
+            <span class="photo-date">${fmtDateShort(ph.date)}</span>
+          </div>
+        </div>
+      </div>`).join('')}
+  `).join('');
+}
+
+function fmtDateShort(d){
+  const dt=new Date(d+'T00:00:00');
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${dt.getDate()} ${M[dt.getMonth()]}`;
+}
+
+function openPhotoViewer(id){
+  const photos=getPhotos();
+  const ph=photos.find(p=>p.id==id);
+  if(!ph) return;
+  currentPhotoId=id;
+  document.getElementById('photoViewImg').src=ph.dataUrl;
+  document.getElementById('photoViewCaption').value=ph.caption||'';
+  document.getElementById('photoViewCat').value=ph.cat||'progress';
+  document.getElementById('photoViewDate').value=ph.date||todayKey();
+  openModal('photoViewModal');
+}
+
+function updatePhotoCaption(){
+  if(!currentPhotoId) return;
+  const photos=getPhotos();
+  const ph=photos.find(p=>p.id==currentPhotoId);
+  if(!ph) return;
+  ph.caption=document.getElementById('photoViewCaption').value;
+  ph.cat=document.getElementById('photoViewCat').value;
+  ph.date=document.getElementById('photoViewDate').value;
+  savePhotos(photos);
+  renderPhotos();
+}
+
+function deletePhoto(){
+  if(!currentPhotoId) return;
+  if(!confirm('Delete this photo?')) return;
+  deletePhotoById(currentPhotoId);
+  closeModal('photoViewModal');
+}
+
+function deletePhotoById(id){
+  const photos=getPhotos().filter(p=>p.id!=id);
+  savePhotos(photos);
+  renderPhotos();
+  toast('Photo deleted');
+}
+
+function downloadPhoto(){
+  if(!currentPhotoId) return;
+  const ph=getPhotos().find(p=>p.id==currentPhotoId);
+  if(!ph) return;
+  const a=document.createElement('a');
+  a.href=ph.dataUrl;
+  a.download=(ph.caption||'site-photo')+'.jpg';
+  a.click();
+}
+
+// ════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ════════════════════════════════════════════════
+function exportData(){
+  // Bundle all project data + todos + all photos
+  const exportObj = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    exportedFrom: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+    db: DB,
+    photos: {}
+  };
+
+  // Collect photos for every project
+  DB.projects.forEach(p => {
+    const photos = localStorage.getItem('sf_photos_' + p.id);
+    if (photos) exportObj.photos[p.id] = JSON.parse(photos);
+    // Also collect per-activity photos
+    p.activities.forEach(a => {
+      const key = 'sf_actphotos_' + p.id + '_' + a.id;
+      const actPhotos = localStorage.getItem(key);
+      if (actPhotos) exportObj.photos['act_'+p.id+'_'+a.id] = JSON.parse(actPhotos);
+    });
+  });
+
+  const json = JSON.stringify(exportObj, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `siteforce-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const projCount = DB.projects.length;
+  const workerCount = DB.projects.reduce((s, p) => s + p.workers.length, 0);
+  const photoCount = Object.values(exportObj.photos).reduce((s, arr) => s + arr.length, 0);
+  toast(`✅ Exported ${projCount} project${projCount !== 1 ? 's' : ''}, ${workerCount} workers, ${photoCount} photos`);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Validate it's a SiteForce backup
+      if (!data.db || !data.db.projects) {
+        toast('⚠ Invalid backup file');
+        return;
+      }
+
+      const incoming = data.db;
+      const incomingPhotos = data.photos || {};
+      const projCount = incoming.projects.length;
+      const photoCount = Object.values(incomingPhotos).reduce((s, arr) => s + arr.length, 0);
+
+      // Ask user what to do
+      const choice = confirm(
+        `Import backup?\n\n` +
+        `• ${projCount} project${projCount !== 1 ? 's' : ''}\n` +
+        `• ${incoming.todos ? incoming.todos.length : 0} tasks\n` +
+        `• ${photoCount} photos\n\n` +
+        `Click OK to MERGE with existing data.\n` +
+        `(Duplicate projects by name will be skipped.)\n\n` +
+        `Click Cancel to abort.`
+      );
+      if (!choice) return;
+
+      // MERGE strategy: add projects that don't already exist by ID
+      const existingIds = new Set(DB.projects.map(p => p.id));
+      let added = 0;
+      incoming.projects.forEach(p => {
+        if (!existingIds.has(p.id)) {
+          if (!p.receipts) p.receipts = [];
+          DB.projects.push(p);
+          added++;
+        }
+      });
+
+      // Merge todos (by id)
+      if (!DB.todos) DB.todos = [];
+      const existingTodoIds = new Set(DB.todos.map(t => t.id));
+      (incoming.todos || []).forEach(t => {
+        if (!existingTodoIds.has(t.id)) DB.todos.push(t);
+      });
+
+      // Restore photos for imported projects
+      Object.entries(incomingPhotos).forEach(([key, photos]) => {
+        // project-level photos
+        if (!existingIds.has(parseInt(key)) && !key.startsWith('act_')) {
+          localStorage.setItem('sf_photos_' + key, JSON.stringify(photos));
+        }
+        // activity-level photos: key = "act_<projId>_<actId>"
+        if (key.startsWith('act_')) {
+          const parts = key.split('_'); // ['act', projId, actId]
+          const projId = parseInt(parts[1]);
+          if (!existingIds.has(projId)) {
+            localStorage.setItem('sf_actphotos_' + parts[1] + '_' + parts[2], JSON.stringify(photos));
+          }
+        }
+      });
+
+      save();
+      goHome();
+
+      toast(`✅ Imported ${added} new project${added !== 1 ? 's' : ''} + ${photoCount} photos`);
+
+    } catch (err) {
+      toast('⚠ Could not read backup file — is it a valid SiteForce export?');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ════════════════════════════════════════════════
+// PROJECT COMPLETION REPORT
+// ════════════════════════════════════════════════
+
+function getDateRangeFilter(){
+  const range = document.getElementById('rptDateRange')?.value || 'all';
+  if(range === 'all') return null;
+  const today = new Date();
+  if(range === 'week'){
+    const dow = today.getDay();
+    const daysBack = dow === 6 ? 0 : dow + 1;
+    const sat = new Date(today); sat.setDate(today.getDate() - daysBack); sat.setHours(0,0,0,0);
+    const fri = new Date(sat); fri.setDate(sat.getDate() + 6);
+    return { from: dateKey(sat), to: dateKey(fri) };
+  }
+  if(range === 'month'){
+    const y = today.getFullYear(), m = today.getMonth();
+    const from = `${y}-${String(m+1).padStart(2,'0')}-01`;
+    const last = new Date(y, m+1, 0);
+    const to = dateKey(last);
+    return { from, to };
+  }
+  return null;
+}
+
+function renderReport(){
+  const p = proj(); if(!p) return;
+  const photoCols   = parseInt(document.getElementById('rptPhotoCols')?.value || 3);
+  const inclPhotos  = (document.getElementById('rptIncludePhotos')?.value || 'yes') === 'yes';
+  const dateFilter  = getDateRangeFilter();
+
+  // Filter activities
+  let acts = [...p.activities];
+  if(dateFilter) acts = acts.filter(a => a.date >= dateFilter.from && a.date <= dateFilter.to);
+  acts.sort((a,b) => a.date.localeCompare(b.date));
+
+  // Filter accomplishments
+  let accs = [...p.accomplishments];
+  if(dateFilter) accs = accs.filter(a => a.date >= dateFilter.from && a.date <= dateFilter.to);
+
+  // Stats
+  const totalActs   = acts.length;
+  const doneActs    = acts.filter(a => a.status === 'done').length;
+  const ongoingActs = acts.filter(a => a.status === 'ongoing').length;
+  const delayedActs = acts.filter(a => a.status === 'delayed').length;
+  const overall     = totalActs ? Math.round(acts.reduce((s,a) => s+(a.pct||0), 0) / totalActs) : 0;
+  const totalPhotos = acts.reduce((s,a) => s + getActPhotos(a.id).length, 0);
+
+  // Unique working dates
+  const allDates    = [...new Set(acts.map(a => a.date))].sort();
+  const firstDate   = allDates[0] || todayKey();
+  const lastDate    = allDates[allDates.length-1] || todayKey();
+
+  // Update on-screen stat boxes
+  const statsEl = document.getElementById('rptStats');
+  if(statsEl){
+    statsEl.innerHTML = `
+      <div class="stat-box"><div class="stat-num">${totalActs}</div><div class="stat-lbl">Total Activities</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--green)">${doneActs}</div><div class="stat-lbl">Completed</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--yellow)">${overall}%</div><div class="stat-lbl">Overall Progress</div></div>
+      <div class="stat-box"><div class="stat-num">${totalPhotos}</div><div class="stat-lbl">Photos</div></div>`;
+  }
+
+  // ── BUILD HTML DOCUMENT ──────────────────────
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtD = d => { const dt=new Date(d+'T00:00:00'); return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`; };
+  const today = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+
+  let html = `<div class="rpt-page">`;
+
+  // ── COVER ──────────────────────────────────
+  html += `<div class="rpt-cover">
+    ${p.company ? `<div class="rpt-company">${esc(p.company)}</div>` : ''}
+    <div class="rpt-title">Project Completion Report</div>
+    <div class="rpt-sub" style="font-size:15px;font-weight:700;margin-top:6px">${esc(p.name)}</div>
+    ${p.loc ? `<div class="rpt-sub">📍 ${esc(p.loc)}</div>` : ''}
+    <div class="rpt-meta-row">
+      <div class="rpt-meta-item"><div class="rpt-meta-label">Foreman</div><div class="rpt-meta-value">${esc(p.foreman||'—')}</div></div>
+      <div class="rpt-meta-item"><div class="rpt-meta-label">Period</div><div class="rpt-meta-value">${fmtD(firstDate)} – ${fmtD(lastDate)}</div></div>
+      <div class="rpt-meta-item"><div class="rpt-meta-label">Working Days</div><div class="rpt-meta-value">${allDates.length}</div></div>
+      <div class="rpt-meta-item"><div class="rpt-meta-label">Overall Progress</div><div class="rpt-meta-value" style="color:#F97316">${overall}%</div></div>
+      <div class="rpt-meta-item"><div class="rpt-meta-label">Report Date</div><div class="rpt-meta-value">${today}</div></div>
+    </div>
+  </div>`;
+
+  // ── SUMMARY TABLE ───────────────────────────
+  html += `<div class="rpt-section-title">📊 Activities Summary</div>
+  <table class="rpt-summary-table">
+    <thead><tr>
+      <th>#</th><th>Activity</th><th>Area</th><th>Status</th><th>% Done</th><th>Workers</th><th>Photos</th><th>Date</th>
+    </tr></thead>
+    <tbody>
+    ${acts.map((a,i) => {
+      const pc = getActPhotos(a.id).length;
+      const stCls = `rpt-status-${a.status}`;
+      return `<tr>
+        <td style="text-align:center;font-weight:700">${i+1}</td>
+        <td style="font-weight:600">${esc(a.name)}</td>
+        <td style="font-size:11px;color:#555">${esc(a.area||'—')}</td>
+        <td><span class="rpt-act-status ${stCls}">${a.status.toUpperCase()}</span></td>
+        <td style="text-align:center;font-weight:700">${a.pct||0}%</td>
+        <td style="text-align:center">${a.workers||'—'}</td>
+        <td style="text-align:center">${pc}</td>
+        <td style="font-size:11px">${fmtD(a.date)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+
+  // ── ACCOMPLISHMENTS SUMMARY ─────────────────
+  if(accs.length){
+    html += `<div class="rpt-section-title">🏆 Accomplishments</div>`;
+    const accByDate = {};
+    accs.forEach(a => { if(!accByDate[a.date]) accByDate[a.date]=[]; accByDate[a.date].push(a); });
+    Object.entries(accByDate).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([date,items])=>{
+      html += `<div class="rpt-date-group">📅 ${fmtD(date)}</div>`;
+      items.forEach(a => {
+        html += `<div class="rpt-acc-item">
+          <div class="rpt-acc-title">${esc(a.title)}${a.pct?` <span style="color:#F97316;font-weight:700"> — ${a.pct}% complete</span>`:''}</div>
+          ${a.desc?`<div class="rpt-acc-desc">${esc(a.desc)}</div>`:''}
+        </div>`;
+      });
+    });
+  }
+
+  // ── DETAILED ACTIVITIES WITH PHOTOS ─────────
+  if(totalActs > 0){
+    html += `<div class="rpt-section-title">⚒️ Detailed Activity Log ${inclPhotos?'& Photo Documentation':''}</div>`;
+
+    // Group by date
+    const byDate = {};
+    acts.forEach(a => { if(!byDate[a.date]) byDate[a.date]=[]; byDate[a.date].push(a); });
+    let actNum = 0;
+
+    Object.entries(byDate).forEach(([date, dayActs]) => {
+      html += `<div class="rpt-date-group">📅 ${fmtD(date)} &nbsp;·&nbsp; ${dayActs.length} activit${dayActs.length===1?'y':'ies'}</div>`;
+
+      dayActs.forEach(a => {
+        actNum++;
+        const photos = getActPhotos(a.id);
+        const stCls  = `rpt-status-${a.status}`;
+        const pct    = a.pct || 0;
+
+        html += `<div class="rpt-act-block">
+          <div class="rpt-act-header">
+            <div class="rpt-act-num">${actNum}</div>
+            <div style="flex:1">
+              <div class="rpt-act-name">${esc(a.name)}</div>
+              ${a.area  ? `<div class="rpt-act-detail">📍 ${esc(a.area)}</div>` : ''}
+              ${a.workers?`<div class="rpt-act-detail">👷 ${a.workers} worker${a.workers>1?'s':''}</div>`:''}
+              ${a.notes ? `<div class="rpt-act-detail" style="margin-top:4px;font-style:italic">${esc(a.notes)}</div>` : ''}
+            </div>
+            <div style="text-align:right;min-width:100px">
+              <span class="rpt-act-status ${stCls}">${a.status.toUpperCase()}</span>
+              <div style="font-size:18px;font-weight:900;color:#F97316;margin-top:6px">${pct}%</div>
+              <div class="rpt-pct-bar"><div class="rpt-pct-fill" style="width:${pct}%"></div></div>
+            </div>
+          </div>`;
+
+        // Photos section
+        if(inclPhotos){
+          html += `<div class="rpt-act-photos">`;
+          if(photos.length){
+            html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:6px">📷 ${photos.length} Photo${photos.length!==1?'s':''}</div>`;
+            html += `<div class="rpt-photo-grid" style="grid-template-columns:repeat(${photoCols},1fr)">`;
+            photos.forEach(ph => {
+              html += `<div>
+                <img src="${ph.dataUrl}" alt="${esc(ph.caption||'')}"/>
+                ${ph.caption?`<div class="rpt-photo-caption">${esc(ph.caption)}</div>`:''}
+              </div>`;
+            });
+            html += `</div>`;
+          } else {
+            html += `<div class="rpt-no-photos">No photos for this activity</div>`;
+          }
+          html += `</div>`;
+        }
+
+        html += `</div>`; // end rpt-act-block
+      });
+    });
+  }
+
+  // ── SIGNATURE BLOCK ─────────────────────────
+  html += `<div class="rpt-sig-row">
+    <div class="rpt-sig"><div class="rpt-sig-line">Prepared by / Foreman<br><b>${esc(p.foreman||'')}</b></div></div>
+    <div class="rpt-sig"><div class="rpt-sig-line">Checked by / Engineer</div></div>
+    <div class="rpt-sig"><div class="rpt-sig-line">Approved by / PM</div></div>
+  </div>`;
+
+  html += `<div class="rpt-footer">Generated by SiteForce &nbsp;·&nbsp; ${today} &nbsp;·&nbsp; ${esc(p.name)}</div>`;
+  html += `</div>`; // end rpt-page
+
+  document.getElementById('reportDocument').innerHTML = html;
+}
+
+function printReport(){
+  const p = proj(); if(!p) return;
+  renderReport(); // make sure it's fresh
+  setTimeout(() => window.print(), 300);
+}
+
+// INIT
+renderProjects();
+</script>
+</body>
+</html>
